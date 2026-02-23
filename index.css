@@ -64,6 +64,9 @@
 
 /* Eventos */
 .fc-event {
+  background-color: #0f172a !important;
+  color: white !important;
+  border: none !important;
   border: none !important;
   border-radius: 1rem !important;
   font-size: 10px !important;
