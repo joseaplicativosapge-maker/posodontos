@@ -261,6 +261,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
         </div>
       </div>
+
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 mb-6">
+        <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+            Calendario de Reservas
+            </h3>
+        </div>
+
+        <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            locales={[esLocale]}
+            locale="es"
+            headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            }}
+            buttonText={{
+                today: 'Hoy',
+                month: 'Mes',
+                week: 'Semana',
+                day: 'Día'
+            }}
+            events={calendarEvents}
+            height="auto"
+            selectable={true}
+            editable={false}
+            eventClick={(info) => {}}
+            />
+        </div>
       
       <div className="grid grid-cols-1 mb-8">
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
@@ -306,38 +337,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
             </div>
       </div>
-
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 mb-6">
-        <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
-            Calendario de Reservas
-            </h3>
-        </div>
-
-        <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            locales={[esLocale]}
-            locale="es"
-            headerToolbar={{
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            }}
-            buttonText={{
-                today: 'Hoy',
-                month: 'Mes',
-                week: 'Semana',
-                day: 'Día'
-            }}
-            events={calendarEvents}
-            height="auto"
-            selectable={true}
-            editable={false}
-            eventClick={(info) => {}}
-            />
-        </div>
-
+      
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3 space-y-8">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
