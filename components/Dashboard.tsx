@@ -317,9 +317,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
             headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
             }}
             events={calendarEvents}
             height="auto"
@@ -327,10 +327,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             editable={false}
             locale="es"
             eventClick={(info) => {
-            const res = info.event.extendedProps;
-            alert(
-                `Reserva:\n${res.customerName}\nTel: ${res.customerPhone}\nPersonas: ${res.seats}`
-            );
+            
             }}
         />
         </div>
