@@ -10,6 +10,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import esLocale from '@fullcalendar/core/locales/es';
 
 interface DashboardProps {
   orders: Order[];
@@ -316,20 +317,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
+            locales={[esLocale]}
+            locale="es"
             headerToolbar={{
                 left: 'prev,next today',
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             }}
+            buttonText={{
+                today: 'Hoy',
+                month: 'Mes',
+                week: 'Semana',
+                day: 'Día'
+            }}
             events={calendarEvents}
             height="auto"
             selectable={true}
             editable={false}
-            locale="es"
-            eventClick={(info) => {
-            
-            }}
-        />
+            eventClick={(info) => {}}
+            />
         </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
