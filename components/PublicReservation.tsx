@@ -97,9 +97,9 @@ export const PublicReservation: React.FC<PublicReservationProps> = ({ branch }) 
                       </div>
                   </div>
                   <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest flex items-center gap-2"><Users size={12}/> Nro de Comensales</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest flex items-center gap-2"><Users size={12}/> Nro de Clientes</label>
                       <select required className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-xs outline-none" value={seats} onChange={e => setSeats(e.target.value)}>
-                          {[1,2,3,4,5,6,7,8,10,12].map(n => <option key={n} value={n}>{n} Personas</option>)}
+                          {[1].map(n => <option key={n} value={n}>{n} Personas</option>)}
                       </select>
                   </div>
                   <div>

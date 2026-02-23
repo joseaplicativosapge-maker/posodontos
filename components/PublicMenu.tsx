@@ -277,9 +277,9 @@ export const PublicMenu: React.FC<PublicMenuProps> = ({ products, branch }) => {
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                               <div>
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest flex items-center gap-2"><Users size={12}/> Comensales</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest flex items-center gap-2"><Users size={12}/> Clientes</label>
                                   <select required className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-xs outline-none" value={resSeats} onChange={e => setResSeats(e.target.value)}>
-                                      {[1,2,3,4,5,6,7,8,10].map(n => <option key={n} value={n}>{n} Pers.</option>)}
+                                      {[1].map(n => <option key={n} value={n}>{n} Pers.</option>)}
                                   </select>
                               </div>
                               <div className="flex items-end">
