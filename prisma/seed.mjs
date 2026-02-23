@@ -92,138 +92,140 @@ async function main() {
 
     // 4. Roles y permisos
     const roleDefs = [
-    {
-      role: 'SUPER_ADMIN',
-      name: 'Administrador Maestro',
-      permissions: [
-        'servicios.ver','servicios.crear','servicios.editar','servicios.eliminar',
-        'productos.ver','productos.crear','productos.editar','productos.eliminar',
-        'stock.ver','stock.ajustar',
-        'inventario.ver','inventario.gestionar',
-        'ventas.crear','ventas.anular',
-        'caja.abrir','caja.cerrar',
-        'agenda.ver','agenda.gestionar',
-        'sillas.gestionar',
-        'clientes.ver','clientes.gestionar',
-        'fidelizacion.configurar',
-        'reportes.ver','reportes.balance','reportes.pyg',
-        'gastos.ver','gastos.crear','gastos.editar','gastos.gestionar',
-        'contabilidad.puc.ver','contabilidad.puc.crear','contabilidad.puc.editar',
-        'contabilidad.movimientos.ver','contabilidad.movimientos.registrar',
-        'contabilidad.configurar',
-        'comisiones.ver','comisiones.gestionar',
-        'usuarios.gestionar','roles.gestionar','sucursales.gestionar',
-        'ajustes.ver','ajustes.editar'
-      ]
-    },
+  {
+    role: 'SUPER_ADMIN',
+    name: 'Administrador Maestro',
+    permissions: [
+      'servicios.ver','servicios.crear','servicios.editar','servicios.eliminar',
+      'productos.ver','productos.crear','productos.editar','productos.eliminar',
+      'stock.ver','stock.ajustar',
+      'inventario.ver','inventario.gestionar',
+      'ventas.crear','ventas.anular',
+      'caja.abrir','caja.cerrar',
+      'agenda.ver','agenda.gestionar',
+      'sillas.gestionar',
+      'clientes.ver','clientes.gestionar',
+      'historia_clinica.ver','historia_clinica.editar',
+      'tratamientos.crear','tratamientos.editar',
+      'reportes.ver','reportes.balance','reportes.pyg',
+      'gastos.ver','gastos.crear','gastos.editar','gastos.gestionar',
+      'contabilidad.puc.ver','contabilidad.puc.crear','contabilidad.puc.editar',
+      'contabilidad.movimientos.ver','contabilidad.movimientos.registrar',
+      'contabilidad.configurar',
+      'comisiones.ver','comisiones.gestionar',
+      'usuarios.gestionar','roles.gestionar','sucursales.gestionar',
+      'ajustes.ver','ajustes.editar'
+    ]
+  },
 
-    {
-      role: 'COMPANY_ADMIN',
-      name: 'Gerencia Corporativa',
-      permissions: [
-        'servicios.ver','servicios.crear','servicios.editar',
-        'productos.ver','stock.ver','inventario.ver',
-        'ventas.crear',
-        'reportes.ver','reportes.balance','reportes.pyg',
-        'comisiones.ver',
-        'usuarios.gestionar','sucursales.gestionar',
-        'ajustes.ver'
-      ]
-    },
+  {
+    role: 'COMPANY_ADMIN',
+    name: 'Director Clínico',
+    permissions: [
+      'servicios.ver','servicios.crear','servicios.editar',
+      'inventario.ver',
+      'ventas.crear',
+      'reportes.ver','reportes.balance','reportes.pyg',
+      'usuarios.gestionar','sucursales.gestionar',
+      'ajustes.ver'
+    ]
+  },
 
-    {
-      role: 'BRANCH_ADMIN',
-      name: 'Administrador de Sede',
-      permissions: [
-        'servicios.ver','servicios.crear','servicios.editar',
-        'productos.ver','stock.ver','stock.ajustar',
-        'inventario.ver','inventario.gestionar',
-        'ventas.crear','ventas.anular',
-        'caja.abrir','caja.cerrar',
-        'agenda.ver','agenda.gestionar',
-        'sillas.gestionar',
-        'clientes.ver','clientes.gestionar',
-        'reportes.ver',
-        'comisiones.ver','comisiones.gestionar',
-        'gastos.crear'
-      ]
-    },
+  {
+    role: 'BRANCH_ADMIN',
+    name: 'Administrador de Clínica',
+    permissions: [
+      'servicios.ver','servicios.crear','servicios.editar',
+      'inventario.ver','inventario.gestionar',
+      'ventas.crear','ventas.anular',
+      'caja.abrir','caja.cerrar',
+      'agenda.ver','agenda.gestionar',
+      'clientes.ver','clientes.gestionar',
+      'reportes.ver',
+      'gastos.crear'
+    ]
+  },
 
-    {
-      role: 'CASHIER',
-      name: 'Cajero',
-      permissions: [
-        'ventas.crear','ventas.anular',
-        'caja.abrir','caja.cerrar',
-        'clientes.ver',
-        'servicios.ver'
-      ]
-    },
+  {
+    role: 'CASHIER',
+    name: 'Auxiliar Administrativo',
+    permissions: [
+      'ventas.crear','ventas.anular',
+      'caja.abrir','caja.cerrar',
+      'clientes.ver',
+      'servicios.ver'
+    ]
+  },
 
-    // 🔄 WAITER ahora es BARBER
-    {
-      role: 'WAITER',
-      name: 'Barbero',
-      permissions: [
-        'agenda.ver','agenda.gestionar',
-        'ventas.crear',
-        'clientes.ver','clientes.gestionar',
-        'servicios.ver',
-        'comisiones.ver'
-      ]
-    },
+  // WAITER → Odontólogo General
+  {
+    role: 'WAITER',
+    name: 'Odontólogo General',
+    permissions: [
+      'agenda.ver','agenda.gestionar',
+      'ventas.crear',
+      'clientes.ver','clientes.gestionar',
+      'servicios.ver',
+      'historia_clinica.ver','historia_clinica.editar',
+      'tratamientos.crear','tratamientos.editar',
+      'comisiones.ver'
+    ]
+  },
 
-    // 🔄 CHEF ahora es BARBER SENIOR
-    {
-      role: 'CHEF',
-      name: 'Barbero Senior',
-      permissions: [
-        'agenda.ver','agenda.gestionar',
-        'ventas.crear','ventas.anular',
-        'clientes.ver','clientes.gestionar',
-        'servicios.ver','servicios.editar',
-        'comisiones.ver'
-      ]
-    },
+  // CHEF → Especialista
+  {
+    role: 'CHEF',
+    name: 'Odontólogo Especialista',
+    permissions: [
+      'agenda.ver','agenda.gestionar',
+      'ventas.crear','ventas.anular',
+      'clientes.ver','clientes.gestionar',
+      'servicios.ver','servicios.editar',
+      'historia_clinica.ver','historia_clinica.editar',
+      'tratamientos.crear','tratamientos.editar',
+      'comisiones.ver'
+    ]
+  },
 
-    // 🔄 GRILL_MASTER ahora es Especialista
-    {
-      role: 'GRILL_MASTER',
-      name: 'Especialista (Color / Diseño)',
-      permissions: [
-        'agenda.ver','agenda.gestionar',
-        'ventas.crear',
-        'servicios.ver',
-        'clientes.ver'
-      ]
-    },
+  // GRILL_MASTER → Especialista Senior / Cirujano
+  {
+    role: 'GRILL_MASTER',
+    name: 'Especialista Senior / Cirujano',
+    permissions: [
+      'agenda.ver','agenda.gestionar',
+      'ventas.crear',
+      'servicios.ver',
+      'historia_clinica.ver','historia_clinica.editar',
+      'clientes.ver'
+    ]
+  },
 
-    // 🔄 BARTENDER ahora es RECEPCIONISTA
-    {
-      role: 'BARTENDER',
-      name: 'Recepcionista',
-      permissions: [
-        'agenda.ver','agenda.gestionar',
-        'ventas.crear',
-        'caja.abrir','caja.cerrar',
-        'clientes.ver','clientes.gestionar',
-        'servicios.ver'
-      ]
-    },
+  // BARTENDER → Recepcionista
+  {
+    role: 'BARTENDER',
+    name: 'Recepcionista',
+    permissions: [
+      'agenda.ver','agenda.gestionar',
+      'ventas.crear',
+      'caja.abrir','caja.cerrar',
+      'clientes.ver','clientes.gestionar',
+      'servicios.ver'
+    ]
+  },
 
-    {
-      role: 'ACCOUNTING_ADMIN',
-      name: 'Contador / Auditor',
-      permissions: [
-        'reportes.ver','reportes.balance','reportes.pyg',
-        'gastos.ver','gastos.crear',
-        'contabilidad.puc.ver','contabilidad.puc.crear','contabilidad.puc.editar',
-        'contabilidad.movimientos.ver','contabilidad.movimientos.registrar',
-        'contabilidad.configurar',
-        'ajustes.ver'
-      ]
-    }
-  ];
+  {
+    role: 'ACCOUNTING_ADMIN',
+    name: 'Contador / Auditor',
+    permissions: [
+      'reportes.ver','reportes.balance','reportes.pyg',
+      'gastos.ver','gastos.crear',
+      'contabilidad.puc.ver','contabilidad.puc.crear','contabilidad.puc.editar',
+      'contabilidad.movimientos.ver','contabilidad.movimientos.registrar',
+      'contabilidad.configurar',
+      'ajustes.ver'
+    ]
+  }
+];
 
   for (const r of roleDefs) {
     await prisma.roleDefinition.upsert({
