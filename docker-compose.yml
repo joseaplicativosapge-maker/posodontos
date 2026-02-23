@@ -11,7 +11,7 @@ services:
     volumes:
       - odontos_db_data:/var/lib/mysql
     ports:
-      - "3308:3306"
+      - "3309:3306"
     networks:
       - odontos-net
 
@@ -27,7 +27,7 @@ services:
       - PORT=3003
       - API_KEY=TU_API_KEY_AQUI
     ports:
-      - "3003:3003"
+      - "3004:3003"
     depends_on:
       - db
     networks:
@@ -41,7 +41,7 @@ services:
     container_name: odontos-frontend
     restart: always
     ports:
-      - "2001:2000"
+      - "2002:2000"
     depends_on:
       - backend
     networks:
