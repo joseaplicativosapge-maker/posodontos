@@ -315,7 +315,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
+            initialView="dayGridMonth"
             headerToolbar={{
             left: 'prev,next today',
             center: 'title',
