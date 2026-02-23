@@ -159,7 +159,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                                      <Download size={14}/> Descargar
                                 </button>
                               </div>
-                              <button onClick={() => handlePrintQR("Nuestro Servicios Digitales", "Escanea para ver los platos y delicias de hoy", qrCodeUrl)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 mt-2">
+                              <button onClick={() => handlePrintQR("Nuestro Servicios Digitales", "Escanea para ver los servicios de hoy", qrCodeUrl)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 mt-2">
                                    <Printer size={14}/> Imprimir QR
                               </button>
                           </div>

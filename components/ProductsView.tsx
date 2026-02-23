@@ -277,7 +277,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                   <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                       <div className="flex items-center gap-3">
                           <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg"><CalendarPlus2 size={20}/></div>
-                          <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{editingProduct ? 'Editar Producto' : 'Alta Nuevo Plato'}</h3>
+                          <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{editingProduct ? 'Editar Servicio' : 'Alta Nuevo Servicio'}</h3>
                       </div>
                       <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-xl shadow-sm text-slate-400 hover:text-slate-700 transition-all"><X size={20}/></button>
                   </div>
@@ -318,7 +318,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Configuración Técnica</label>
                                         <select className="w-full bg-slate-900 text-white border-none rounded-2xl p-4 font-black text-[10px] uppercase" value={prodType} onChange={e => setProdType(e.target.value as ProductType)}>
-                                            <option value={ProductType.PREPARED}>Plato Preparado (Receta)</option>
+                                            <option value={ProductType.PREPARED}>Servicio con insumos</option>
                                             <option value={ProductType.COMBO}>Combo (Multi-Producto)</option>
                                         </select>
                                     </div>
@@ -354,7 +354,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                               <div className="space-y-6">
                                   <div className="relative group">
                                       <div className="h-40 w-full bg-white border-2 border-dashed border-slate-200 rounded-3xl overflow-hidden flex flex-col items-center justify-center cursor-pointer hover:border-brand-300 transition-all" onClick={() => fileInputRef.current?.click()}>
-                                          {prodImageUrl ? <img src={prodImageUrl} className="w-full h-full object-cover" /> : <><ImageIcon size={40} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase">Fotografía del Plato</span></>}
+                                          {prodImageUrl ? <img src={prodImageUrl} className="w-full h-full object-cover" /> : <><ImageIcon size={40} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase">Fotografía del Servicio</span></>}
                                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                                       </div>
                                   </div>

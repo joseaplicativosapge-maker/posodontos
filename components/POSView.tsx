@@ -334,7 +334,7 @@ export const POSView: React.FC<POSViewProps> = ({
                 <div className="flex items-center gap-4">
                     <div className="relative flex-1 group">
                         <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-brand-500" size={20} />
-                        <input type="text" placeholder="Buscar plato..." className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <input type="text" placeholder="Buscar servicio..." className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
                     {onViewTables && (
                         <button onClick={onViewTables} className="bg-slate-900 text-white p-4 rounded-2xl shadow-lg hover:bg-brand-600 transition-all active:scale-95 flex items-center gap-2"><Grid3X3 size={24} /><span className="hidden lg:inline text-[10px] font-black uppercase">Salón</span></button>

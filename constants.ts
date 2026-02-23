@@ -142,7 +142,7 @@ export const MOCK_VOUCHERS: AccountingVoucher[] = [
         notes: 'Cierre automático orden Demo',
         entries: [
             { id: 'e1', voucherId: 'v-101', accountId: 'acc-11', accountCode: '110505', accountName: 'CAJA GENERAL', debit: 109480, credit: 0, description: 'Recaudo Venta' },
-            { id: 'e2', voucherId: 'v-101', accountId: 'acc-41', accountCode: '414005', accountName: 'INGRESOS RESTAURANTE', debit: 0, credit: 92000, description: 'Venta Plato' },
+            { id: 'e2', voucherId: 'v-101', accountId: 'acc-41', accountCode: '414005', accountName: 'INGRESOS RESTAURANTE', debit: 0, credit: 92000, description: 'Venta Servicio' },
             { id: 'e3', voucherId: 'v-101', accountId: 'acc-24', accountCode: '240805', accountName: 'IVA GENERADO 19%', debit: 0, credit: 17480, description: 'Impuesto' },
         ]
     }

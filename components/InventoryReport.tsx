@@ -220,7 +220,7 @@ export const InventoryReport: React.FC<InventoryReportProps> = ({ inventory, pro
                     colSpan={4}
                     className="px-6 py-12 text-center text-slate-400 text-xs font-black uppercase tracking-widest"
                   >
-                    No hay platos o servicios para mostrar
+                    No hay servicios para mostrar
                   </td>
                 </tr>
               ) : (
@@ -247,7 +247,7 @@ export const InventoryReport: React.FC<InventoryReportProps> = ({ inventory, pro
                         {item.canMake}
                       </span>
                       <span className="text-[10px] font-bold text-slate-400 ml-1 uppercase">
-                        Platos
+                        Servicios
                       </span>
                     </td>
 

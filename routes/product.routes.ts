@@ -64,7 +64,7 @@ router.get('/categories', async (req, res) => {
  * @openapi
  * /api/products:
  *   post:
- *     summary: Crea un nuevo plato o producto con receta
+ *     summary: Crea un nuevo servicio o producto con receta
  *     tags: [Productos]
  *     security:
  *       - bearerAuth: []
