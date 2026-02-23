@@ -27,7 +27,7 @@ services:
       - PORT=3003
       - API_KEY=TU_API_KEY_AQUI
     ports:
-      - "3004:3004"
+      - "3004:3003"
     depends_on:
       - db
     networks:
