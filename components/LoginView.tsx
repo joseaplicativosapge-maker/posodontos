@@ -62,16 +62,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     muted 
     loop 
     playsInline 
-    className="absolute inset-0 w-full h-full object-cover opacity-40 scale-105 pointer-events-none"
+    className="absolute inset-0 w-full h-full object-cover scale-105 pointer-events-none"
   >
     <source 
       src="https://apgesoftware.com/posodontos/assets/video/background.mp4" 
       type="video/mp4" 
     />
   </video>
-
-  {/* Dark Overlay with Blur */}
-  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-900/40 backdrop-blur-[1px]"></div>
 
   {/* Login Card */}
   <div className="w-full max-w-md bg-white/10 backdrop-blur-2xl p-8 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 relative z-10 animate-in fade-in zoom-in duration-500">
