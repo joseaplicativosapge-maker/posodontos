@@ -271,7 +271,8 @@ async function main() {
   });
 
   // 7. Categorías
-  const categories = ['CLÁSICOS','MODERNOS / URBANOS','DEGRADADOS (FADE)','BARBA Y PERFILADO','NIÑOS', 'SERVICIOS ESPECIALES'];
+  const categories = ['ODONTOLOGÍA GENERAL','OPERATORIA / RESTAURADORA','ENDODONCIA','CIRUGÍA ORAL'
+      , 'ORTODONCIA', 'PERIODONCIA', 'PROSTODONCIA', 'IMPLANTOLOGÍA', 'ODONTOPEDIATRÍA'];
 
   for (const cat of categories) {
     await prisma.category.upsert({
