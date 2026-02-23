@@ -2,10 +2,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Order, User, CashRegister, RegisterSession, Expense, OrderStatus, Product, InventoryItem, ProductType, DashboardStats, Reservation, ReservationStatus } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-import { TrendingUp, DollarSign, ShoppingBag, Timer, Zap, Award, Clock, ArrowUpRight, ArrowDownRight, CalendarRange, Lock, 
-    Unlock, X, AlertTriangle, Wallet, Package, BarChart3, ArrowUpCircle, ArrowDownCircle, Calculator, Flame, PlusCircle, 
+import { TrendingUp, DollarSign, Timer, Award, Clock, CalendarRange, Lock, 
+    Unlock, X, Wallet, ArrowUpCircle, ArrowDownCircle, Calculator, Flame, PlusCircle, 
     CalendarCheck, Calendar } from 'lucide-react';
 import { dataService } from '../services/data.service';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 
 interface DashboardProps {
   orders: Order[];
@@ -49,7 +53,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
         .filter(r => r.date === todayStr && r.status !== ReservationStatus.CANCELLED)
         .sort((a, b) => a.time.localeCompare(b.time));
   }, [reservations]);
-  
+
+  const calendarEvents = useMemo(() => {
+    return reservations.map(res => ({
+        id: res.id,
+        title: `${res.customerName}`,
+        start: `${res.date}T${res.time}`,
+        backgroundColor:
+        res.status === ReservationStatus.CONFIRMED
+            ? '#16a34a'
+            : res.status === ReservationStatus.CANCELLED
+            ? '#e2e8f0'
+            : '#cc6600',
+        textColor:
+        res.status === ReservationStatus.CANCELLED
+            ? '#64748b'
+            : '#ffffff'
+    }));
+    }, [reservations]);
+
   // // TABLERO: Cálculo de ventas de hoy filtrando el historial general
   const today = new Date().toDateString();
   
@@ -238,7 +260,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
         </div>
       </div>
-
+      
       <div className="grid grid-cols-1 mb-8">
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
                   <div className="flex justify-between items-center mb-8">
@@ -283,6 +305,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
             </div>
       </div>
+
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 mb-6">
+        <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+            Calendario de Reservas
+            </h3>
+        </div>
+
+        <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            }}
+            events={calendarEvents}
+            height="auto"
+            selectable={true}
+            editable={false}
+            locale="es"
+            eventClick={(info) => {
+            const res = info.event.extendedProps;
+            alert(
+                `Reserva:\n${res.customerName}\nTel: ${res.customerPhone}\nPersonas: ${res.seats}`
+            );
+            }}
+        />
+        </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3 space-y-8">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">

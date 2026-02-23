@@ -1,3 +1,78 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===== FULLCALENDAR CUSTOM APGE STYLE ===== */
+
+.fc {
+  font-family: inherit;
+}
+
+/* Toolbar */
+.fc-toolbar {
+  margin-bottom: 1.5rem !important;
+}
+
+.fc-toolbar-title {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: #0f172a;
+}
+
+/* Botones */
+.fc-button {
+  background: #0f172a !important;
+  border: none !important;
+  border-radius: 1rem !important;
+  font-weight: 800 !important;
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.6rem 1rem !important;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+}
+
+.fc-button:hover {
+  background: #cc6600 !important;
+}
+
+.fc-button-active {
+  background: #cc6600 !important;
+}
+
+/* Grid */
+.fc-scrollgrid {
+  border-radius: 2rem !important;
+  overflow: hidden !important;
+  border: 1px solid #f1f5f9 !important;
+}
+
+/* Cabecera días */
+.fc-col-header-cell {
+  background: #f8fafc;
+  font-weight: 900;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  padding: 12px 0 !important;
+}
+
+/* Eventos */
+.fc-event {
+  border: none !important;
+  border-radius: 1rem !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px !important;
+  box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+}
+
+/* Hoy */
+.fc-day-today {
+  background: #fff7ed !important;
+}
