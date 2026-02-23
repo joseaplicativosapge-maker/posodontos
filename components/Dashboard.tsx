@@ -362,7 +362,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
                   <div className="mb-6 flex justify-between items-center">
                     <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Ranking Productos Estrella</h3>
-                    <Award className="text-orange-500" size={24}/>
+                    <Award className="text-brand-500" size={24}/>
                   </div>
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
