@@ -22,7 +22,7 @@ services:
       dockerfile: Dockerfile
     container_name: odontos-backend
     environment:
-      - DATABASE_URL=mysql://root:root_password_seguro@db:3309/odontos_db
+      - DATABASE_URL=mysql://root:root_password_seguro@db:3306/odontos_db
       - JWT_SECRET=odontos_SaaS_2025_secure_key
       - PORT=3003
       - API_KEY=TU_API_KEY_AQUI
