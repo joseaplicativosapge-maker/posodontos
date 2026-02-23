@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `CashRegister` ADD COLUMN `autoPrint` BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN `printType` VARCHAR(191) NOT NULL DEFAULT 'PDF',
+    ADD COLUMN `qzPrinterName` VARCHAR(191) NULL,
+    ADD COLUMN `ticketFooter` VARCHAR(191) NULL;

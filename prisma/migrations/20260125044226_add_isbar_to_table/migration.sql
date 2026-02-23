@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Table` ADD COLUMN `isBar` BOOLEAN NOT NULL DEFAULT false;

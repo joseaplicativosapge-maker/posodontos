@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Motor de Base de Datos
+  db:
+    image: mysql:8.0
+    container_name: barbers-db
+    environment:
+      MYSQL_DATABASE: barbers_db
+      MYSQL_ROOT_PASSWORD: root_password_seguro
+    volumes:
+      - barbers_db_data:/var/lib/mysql
+    ports:
+      - "3308:3306"
+    networks:
+      - barbers-net
+
+  # API Core (Backend)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: barbers-backend
+    environment:
+      - DATABASE_URL=mysql://root:root_password_seguro@db:3306/barbers_db
+      - JWT_SECRET=barbers_SaaS_2025_secure_key
+      - PORT=3003
+      - API_KEY=TU_API_KEY_AQUI
+    ports:
+      - "3003:3003"
+    depends_on:
+      - db
+    networks:
+      - barbers-net
+
+  # Interfaz Web (Frontend)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: barbers-frontend
+    restart: always
+    ports:
+      - "2001:2000"
+    depends_on:
+      - backend
+    networks:
+      - barbers-net
+
+networks:
+  barbers-net:
+    driver: bridge
+
+volumes:
+  barbers_db_data:

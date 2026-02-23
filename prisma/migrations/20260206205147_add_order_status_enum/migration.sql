@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `InventoryMovement` MODIFY `type` ENUM('ENTRADA', 'SALIDA', 'AJUSTES') NOT NULL;
+
+-- AlterTable
+ALTER TABLE `OrderItem` ADD COLUMN `status` ENUM('PENDING', 'READY') NOT NULL DEFAULT 'PENDING';
