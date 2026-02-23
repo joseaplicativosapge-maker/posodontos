@@ -65,7 +65,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     className="absolute inset-0 w-full h-full object-cover opacity-40 scale-105 pointer-events-none"
   >
     <source 
-      src="https://apgesoftware.com/posbarbers/assets/video/background.mp4" 
+      src="https://apgesoftware.com/posodontos/assets/video/background.mp4" 
       type="video/mp4" 
     />
   </video>
@@ -84,7 +84,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           <Scissors size={40} className="text-white" />
         )}
       </div>
-      <h1 className="text-3xl font-black text-white tracking-tighter mb-2">APGE Barbers</h1>
+      <h1 className="text-3xl font-black text-white tracking-tighter mb-2">APGE OdontOS</h1>
       <p className="text-slate-300 text-xs font-bold tracking-[0.2em] opacity-80">Ingrese su PIN de Acceso</p>
     </div>
 

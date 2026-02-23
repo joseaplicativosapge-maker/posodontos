@@ -15,7 +15,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
   const [previewMode, setPreviewMode] = useState<'menu' | 'reservation'>('menu');
   const [deviceView, setDeviceView] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
 
-  const origin = typeof window !== 'undefined' ? window.location.origin + '/posbarbers' : 'https://barbers.app';
+  const origin = typeof window !== 'undefined' ? window.location.origin + '/posodontos' : 'https://odontos.app';
   const menuUrl = `${origin}/menu/${currentBranch?.id || 'demo'}`;
   const reservationUrl = `${origin}/reserva/${currentBranch?.id || 'demo'}`;
   

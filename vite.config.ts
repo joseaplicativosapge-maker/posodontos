@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   // Fix process.cwd() type error in node environment of vite.config.ts
   const env = loadEnv(mode, (process as any).cwd(), '');
   return {
-    base: '/posbarbers/',
+    base: '/posodontos/',
     plugins: [react()],
     define: {
       // Fix: Map GEMINI_API_KEY to API_KEY to ensure GoogleGenAI finds it under the correct key per guidelines.

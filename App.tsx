@@ -394,7 +394,7 @@ const App: React.FC = () => {
 
           <div class="footer center">
             <p>${register?.ticketFooter || '¡MUCHAS GRACIAS POR SU PREFERENCIA!'}</p>
-            <p>SISTEMA POS APGE BARBERS v2.5<br/>Cloud Powered Infrastructure</p>
+            <p>SISTEMA POS APGE ODONTOS v2.5<br/>Cloud Powered Infrastructure</p>
           </div>
           
           <script>

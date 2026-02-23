@@ -30,7 +30,7 @@ Crea un archivo llamado **`.env`** en la raíz del proyecto y agrega el siguient
 
 ```env
 # URL de conexión a la base de datos (ajusta usuario y contraseña)
-DATABASE_URL="mysql://root:tu_password@localhost:3306/barbers_db"
+DATABASE_URL="mysql://root:tu_password@localhost:3306/odontos_db"
 
 # Secreto para la generación de tokens JWT
 JWT_SECRET="barber_secret_key_2025"
@@ -75,7 +75,7 @@ Asegúrate de que:
 Luego ejecuta:
 
 ```bash
-npx prisma migrate dev --name init_barbers
+npx prisma migrate dev --name init_odontos
 ```
 
 Esto creará las tablas necesarias en la base de datos.
@@ -110,7 +110,7 @@ npm run server
 Salida esperada:
 
 ```
-🚀 BARBERS-OS BACKEND ACTIVO EN PUERTO 3001
+🚀 ODONTO-OS BACKEND ACTIVO EN PUERTO 3001
 ```
 
 #### Terminal 2 – Frontend
@@ -134,7 +134,7 @@ Abre esa URL en tu navegador.
 Una vez cargue la pantalla de login:
 
 - **PIN de acceso:** `1111`
-- **Usuario administrador:** `admin@barbers.io`
+- **Usuario administrador:** `admin@odontos.io`
 
 (Este usuario es creado automáticamente por el seeder)
 
@@ -165,6 +165,6 @@ El sistema incluye un mecanismo de **fallback** en `services/api.ts`:
 
 ## ✅ Estado del Proyecto
 
-BarbersOS SaaS está diseñado para ejecutarse en entornos locales, servidores VPS o contenedores Docker, facilitando su evolución hacia un modelo SaaS completo.
+OdontOS SaaS está diseñado para ejecutarse en entornos locales, servidores VPS o contenedores Docker, facilitando su evolución hacia un modelo SaaS completo.
 
 🚀 ¡Listo para desarrollar y escalar!

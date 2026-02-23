@@ -69,8 +69,8 @@ export const MOCK_TABLES: Table[] = [
 ];
 
 export const MOCK_USERS: User[] = [
-  { id: 'u1', name: 'Admin Maestro', email: 'admin@barbers.io', pin: '1111', role: Role.SUPER_ADMIN, isActive: true },
-  { id: 'u2', name: 'Cajero Roberto', email: 'bob@barbers.com', pin: '2222', role: Role.CASHIER, branchId: 'b1', isActive: true },
+  { id: 'u1', name: 'Admin Maestro', email: 'admin@odontos.io', pin: '1111', role: Role.SUPER_ADMIN, isActive: true },
+  { id: 'u2', name: 'Cajero Roberto', email: 'bob@odontos.com', pin: '2222', role: Role.CASHIER, branchId: 'b1', isActive: true },
 ];
 
 export const MOCK_SUPPLIERS: Supplier[] = [

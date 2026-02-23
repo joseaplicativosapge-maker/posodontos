@@ -43,7 +43,7 @@ async function main() {
         name: 'Barberia Centro (Sede Principal)',
         address: 'Calle 100 #15-20, Edificio Barberia',
         phone: '601 234 5678',
-        email: 'centro@barbers.io',
+        email: 'centro@odontos.io',
         isActive: true
       }
     });
@@ -239,12 +239,12 @@ async function main() {
 
   // 5. Usuario inicial
   await prisma.user.upsert({
-    where: { email: 'admin@barbers.io' },
+    where: { email: 'admin@odontos.io' },
     update: { isActive: true, pin: '1111' },
     create: {
       id: 'u-maestro-init',
       name: 'ADMINISTRADOR SISTEMA',
-      email: 'admin@barbers.io',
+      email: 'admin@odontos.io',
       pin: '1111',
       role: 'SUPER_ADMIN',
       branchId: branch.id,

@@ -69,7 +69,7 @@ const swaggerOptions = {
         'Documentación oficial del backend APGE BarberOS POS multisucursal.',
       contact: {
         name: 'APGE BarberOS Dev Team',
-        email: 'dev@barbers.io',
+        email: 'dev@odontos.io',
       },
     },
 
