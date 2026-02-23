@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Product, ProductionArea, Category, ProductType, RecipeItem, ComboItem, Branch, PromotionType, InventoryItem } from '../types';
-import { Plus, X, Edit2, Search, ImageIcon, Tag, Scissors, Info, Layers, QrCode, Trash2, Percent, Calculator, DollarSign, ArrowRight, ShieldCheck, BookOpen, Download, Printer, Utensils, Boxes, BoxSelect } from 'lucide-react';
+import { Plus, X, Edit2, Search, ImageIcon, Tag, CalendarPlus2, Info, Layers, QrCode, Trash2, Percent, Calculator, DollarSign, ArrowRight, ShieldCheck, BookOpen, Download, Printer, Utensils, Boxes, BoxSelect } from 'lucide-react';
 import { useNotification } from './NotificationContext';
 import { AccountingAccount } from '../types_accounting';
 import { QrMenuView } from './QrMenuView';
@@ -174,7 +174,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-6">
         <div>
             <h2 className="text-3xl font-black text-slate-800 tracking-tighter flex items-center gap-3">
-                <Scissors className="text-brand-600" size={32} />
+                <CalendarPlus2 className="text-brand-600" size={32} />
                 Servicios
             </h2>
             <p className="text-slate-500 font-medium text-xs tracking-widest mt-1">Gestión avanzada de servicios.</p>
@@ -194,7 +194,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       {displayProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
           <div className="bg-slate-100 w-32 h-32 rounded-full flex items-center justify-center mb-6">
-            <Scissors size={48} className="text-slate-300" />
+            <CalendarPlus2 size={48} className="text-slate-300" />
           </div>
           <h3 className="text-2xl font-black">
             Sin servicios
@@ -276,7 +276,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
               <div className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col max-h-[92vh]">
                   <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                       <div className="flex items-center gap-3">
-                          <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg"><Scissors size={20}/></div>
+                          <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg"><CalendarPlus2 size={20}/></div>
                           <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{editingProduct ? 'Editar Producto' : 'Alta Nuevo Plato'}</h3>
                       </div>
                       <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-xl shadow-sm text-slate-400 hover:text-slate-700 transition-all"><X size={20}/></button>

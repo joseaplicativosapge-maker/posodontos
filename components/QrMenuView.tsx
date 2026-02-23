@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Product, Branch } from '../types';
-import { QrCode, Printer, Share2, Smartphone, Scissors, Copy, Check, ArrowRight, CalendarCheck, Info, Monitor, Tablet, Download } from 'lucide-react';
+import { QrCode, Printer, Share2, Smartphone, CalendarPlus2, Copy, Check, ArrowRight, CalendarCheck, Info, Monitor, Tablet, Download } from 'lucide-react';
 import { PublicMenu } from './PublicMenu';
 import { PublicReservation } from './PublicReservation';
 
@@ -135,7 +135,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                   {/* CARTA DIGITAL QR */}
                   <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden relative group transition-all hover:shadow-2xl">
                       <div className="bg-brand-600 h-32 relative flex flex-col items-center justify-center overflow-hidden">
-                           <div className="bg-white/20 p-2 rounded-xl mb-1 backdrop-blur-md relative z-10"><Scissors size={24} className="text-white" /></div>
+                           <div className="bg-white/20 p-2 rounded-xl mb-1 backdrop-blur-md relative z-10"><CalendarPlus2 size={24} className="text-white" /></div>
                            <h3 className="text-white font-black uppercase text-[10px] tracking-[0.2em] relative z-10">CARTA DIGITAL</h3>
                            <div className="absolute -right-4 -bottom-4 bg-white/5 w-24 h-24 rounded-full"></div>
                       </div>
@@ -212,7 +212,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                       {/* Selector de Contenido */}
                       <div className="flex bg-slate-200 rounded-lg p-1">
                           <button onClick={() => setPreviewMode('menu')} className={`px-3 py-2 rounded-md transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${previewMode === 'menu' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
-                            <Scissors size={14}/> Servicio
+                            <CalendarPlus2 size={14}/> Servicio
                           </button>
                           <button onClick={() => setPreviewMode('reservation')} className={`px-3 py-2 rounded-md transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${previewMode === 'reservation' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
                             <CalendarCheck size={14}/> Reserva

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User as UserType } from '../types';
-import { Lock, Delete, Scissors } from 'lucide-react';
+import { Lock, Delete, CalendarPlus2 } from 'lucide-react';
 import { authService } from '../services/auth.service';
 import { useNotification } from './NotificationContext';
 
@@ -81,7 +81,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         {isSubmitting ? (
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white"></div>
         ) : (
-          <Scissors size={40} className="text-white" />
+          <CalendarPlus2 size={40} className="text-white" />
         )}
       </div>
       <h1 className="text-3xl font-black text-white tracking-tighter mb-2">APGE OdontOS</h1>

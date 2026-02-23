@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Branch, ReservationStatus } from '../types';
-import { Scissors, Calendar, Clock, Users, Send, CheckCircle2, Phone, User, MessageSquare } from 'lucide-react';
+import { CalendarPlus2, Calendar, Clock, Users, Send, CheckCircle2, Phone, User, MessageSquare } from 'lucide-react';
 import { dataService } from '../services/data.service';
 
 interface PublicReservationProps {

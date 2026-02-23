@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, Plus, Minus, CreditCard, Banknote, QrCode, X, Lock, Send, ReceiptText, 
   UtensilsCrossed, Save, Grid3X3, Unlock, AlertTriangle, 
-  Tag, User, Star, Edit2, History, Clock, Flame, Beer, Scissors, BellRing, Link
+  Tag, User, Star, Edit2, History, Clock, Flame, Beer, CalendarPlus2, BellRing, Link
 } from 'lucide-react';
 
 import { 
@@ -359,7 +359,7 @@ export const POSView: React.FC<POSViewProps> = ({
             {(!products || products.length === 0 || filteredProducts.length === 0) ? (
                 
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center opacity-50">
-                <Scissors size={100} className="mb-2 text-slate-300" />
+                <CalendarPlus2 size={100} className="mb-2 text-slate-300" />
                 <p className="text-slate-400">Servicios vacío</p>
                 </div>
 
@@ -555,7 +555,7 @@ export const POSView: React.FC<POSViewProps> = ({
                                 return (
                                     <div key={area} className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                                         <div className="flex items-center gap-1.5 mb-1.5">
-                                            {area === ProductionArea.KITCHEN ? <Scissors size={10} className="text-brand-500"/> : area === ProductionArea.GRILL ? <Flame size={10} className="text-orange-500"/> : <Beer size={10} className="text-blue-500"/>}
+                                            {area === ProductionArea.KITCHEN ? <CalendarPlus2 size={10} className="text-brand-500"/> : area === ProductionArea.GRILL ? <Flame size={10} className="text-orange-500"/> : <Beer size={10} className="text-blue-500"/>}
                                             <span className="text-[8px] font-black text-slate-600 uppercase">{area}</span>
                                         </div>
                                         <div className="space-y-1">

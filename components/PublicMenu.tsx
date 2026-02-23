@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Product, Branch, ReservationStatus } from '../types';
-import { Scissors, Search, MapPin, Clock, Phone, ChevronRight, Info, Calendar, X, User, Users, Send, CheckCircle2, MessageSquare } from 'lucide-react';
+import { CalendarPlus2, Search, MapPin, Clock, Phone, ChevronRight, Info, Calendar, X, User, Users, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import { dataService } from '../services/data.service';
 
 interface PublicMenuProps {
@@ -112,7 +112,7 @@ export const PublicMenu: React.FC<PublicMenuProps> = ({ products, branch }) => {
                         {branch.logoUrl ? (
                             <img src={branch.logoUrl} alt="Logo" className="w-8 h-8 object-cover rounded-lg" />
                         ) : (
-                            <Scissors size={32} className="text-brand-500" />
+                            <CalendarPlus2 size={32} className="text-brand-500" />
                         )}
                     </div>
                     <div>

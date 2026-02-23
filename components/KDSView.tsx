@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Order, OrderStatus, ProductionArea, OrderType, ItemStatus, Role } from '../types';
-import { Clock, Droplets, Filter, Monitor, Check, ChevronRight, Scissors, UserRound } from 'lucide-react';
+import { Clock, Droplets, Filter, Monitor, Check, ChevronRight, CalendarPlus2, UserRound } from 'lucide-react';
 
 interface KDSViewProps {
   orders: Order[];
@@ -67,7 +67,7 @@ export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, o
   const availableTabs = useMemo(() => {
       const allTabs = [
           { id: 'ALL', label: 'Todo', icon: <Filter size={14} />, roles: 'global' },
-          { id: ProductionArea.KITCHEN, label: 'Cortes', icon: <Scissors size={14} />, roles: [Role.CHEF] },
+          { id: ProductionArea.KITCHEN, label: 'Cortes', icon: <CalendarPlus2 size={14} />, roles: [Role.CHEF] },
           { id: ProductionArea.GRILL, label: 'Barba', icon: <UserRound size={14} />, roles: [Role.GRILL_MASTER] },
           { id: ProductionArea.BAR, label: 'Lavado / Extras', icon: <Droplets size={14} />, roles: [Role.BARTENDER] }
       ];
@@ -100,7 +100,7 @@ export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, o
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-[1600px] mx-auto">
             {activeOrders.length === 0 ? (
                 <div className="col-span-full flex flex-col items-center justify-center py-32 text-slate-700">
-                    <Scissors size={80} className="mb-4 opacity-10 animate-pulse" />
+                    <CalendarPlus2 size={80} className="mb-4 opacity-10 animate-pulse" />
                     <h3 className="text-xl font-bold tracking-widest">Estación sin pendientes</h3>
                 </div>
             ) : (

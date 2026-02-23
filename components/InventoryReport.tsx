@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { InventoryItem, Product, Order, OrderStatus } from '../types';
-import { Package, ShoppingBag, AlertTriangle, Scissors, ArrowUp, Download, Search, Info, FileText } from 'lucide-react';
+import { Package, ShoppingBag, AlertTriangle, CalendarPlus2, ArrowUp, Download, Search, Info, FileText } from 'lucide-react';
 
 interface InventoryReportProps {
   inventory: InventoryItem[];
@@ -119,7 +119,7 @@ export const InventoryReport: React.FC<InventoryReportProps> = ({ inventory, pro
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit print:hidden">
         <button onClick={() => { setActiveSubTab('insumos'); setSearchTerm(''); }} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeSubTab === 'insumos' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}><Package size={14} /> Insumos</button>
-        <button onClick={() => { setActiveSubTab('preparados'); setSearchTerm(''); }} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeSubTab === 'preparados' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}><Scissors size={14} /> Servicios (Materiales)</button>
+        <button onClick={() => { setActiveSubTab('preparados'); setSearchTerm(''); }} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeSubTab === 'preparados' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}><CalendarPlus2 size={14} /> Servicios (Materiales)</button>
         <button onClick={() => { setActiveSubTab('directa'); setSearchTerm(''); }} className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeSubTab === 'directa' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}><ShoppingBag size={14} /> Venta Directa</button>
       </div>
 

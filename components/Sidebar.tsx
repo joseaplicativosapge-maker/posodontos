@@ -1,6 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, LogOut, Store, Grid3X3, MonitorPlay, BarChart3, 
-  Scissors, ChevronDown, BookOpen, Calculator, Boxes, QrCode, Users, Settings, X } from 'lucide-react';
+  CalendarPlus2, ChevronDown, BookOpen, Calculator, Boxes, QrCode, Users, Settings, X } from 'lucide-react';
 import { Branch, Role, Permission, UserRole } from '../types';
 
 interface SidebarProps {
@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'tables', label: 'Sillas', icon: <Grid3X3 size={20} />, permission: Permission.TABLES_MANAGE },
     { id: 'pos', label: 'Caja POS', icon: <Store size={20} />, permission: Permission.SALES_CREATE },
     { id: 'kds', label: 'Servicios KDS', icon: <MonitorPlay size={20} />, permission: Permission.KDS_VIEW },
-    { id: 'products', label: 'Servicios', icon: <Scissors size={20} />, permission: Permission.PRODUCTS_VIEW },
+    { id: 'products', label: 'Servicios', icon: <CalendarPlus2 size={20} />, permission: Permission.PRODUCTS_VIEW },
     { id: 'menu_qr', label: 'Carta Digital', icon: <QrCode size={20} />, permission: Permission.PRODUCTS_VIEW },
     { id: 'warehouse', label: 'Inventario', icon: <Boxes size={20} />, permission: Permission.INVENTARIO_VER },
     { id: 'operational_mgmt', label: 'Gastos y Costos', icon: <Calculator size={20} />, permission: Permission.OPERATIVE_VIEW },
@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-6 border-b border-slate-800 bg-slate-900 flex justify-between items-center">
           <div className="flex items-center gap-3">
              <div className="bg-brand-600 p-2 rounded-lg shadow-lg shadow-brand-900/50">
-               <Scissors size={24} className="text-white" />
+               <CalendarPlus2 size={24} className="text-white" />
              </div>
              <h1 className="text-xl font-bold tracking-tight text-white">APGE OdontOS</h1>
           </div>
