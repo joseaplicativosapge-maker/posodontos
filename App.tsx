@@ -101,7 +101,7 @@ const App: React.FC = () => {
       }
 
       // Verificar autenticación
-      const token = localStorage.getItem('barber_token');
+      const token = localStorage.getItem('odontos_token');
       if (token) {
         try {
           const authData = await authService.verify();
@@ -307,7 +307,7 @@ const App: React.FC = () => {
   const printOrderTicket = useCallback((saleData: any) => {
     const branch = branchContext.branches.find(b => b.id === branchContext.currentBranchId);
     const register = branchContext.registers.find(r => r.isOpen && r.currentUserId === currentUser?.id);
-    const companyName = settings?.name || 'BARBER OS SaaS';
+    const companyName = settings?.name || 'OdontOS SaaS';
     
     const printWindow = window.open('', '_blank', 'width=300,height=600');
     if (!printWindow) {

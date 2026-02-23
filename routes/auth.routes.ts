@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 const router = Router();
 const prisma = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'barber_SaaS_2025_secure_key';
+const JWT_SECRET = process.env.JWT_SECRET || 'odontos_SaaS_2025_secure_key';
 
 /**
  * @openapi

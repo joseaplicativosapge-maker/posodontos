@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
              <div className="bg-brand-600 p-2 rounded-lg shadow-lg shadow-brand-900/50">
                <Scissors size={24} className="text-white" />
              </div>
-             <h1 className="text-xl font-bold tracking-tight text-white">APGE BarberOS</h1>
+             <h1 className="text-xl font-bold tracking-tight text-white">APGE OdontOS</h1>
           </div>
           <button onClick={onCloseMobile} className="md:hidden text-slate-400 p-1">
             <X size={24} />

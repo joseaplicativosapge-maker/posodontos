@@ -46,13 +46,13 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
     const printWindow = window.open('', '_blank', 'width=800,height=900');
     if (!printWindow) return;
 
-    const branchName = currentBranch?.name || 'BarberOS Restaurant';
+    const branchName = currentBranch?.name || 'OdontOS Restaurant';
     const logoHtml = currentBranch?.logoUrl ? `<img src="${currentBranch.logoUrl}" style="max-height: 100px; margin-bottom: 30px; object-fit: contain;">` : '';
 
     printWindow.document.write(`
       <html>
         <head>
-          <title>BarberOS Print - ${title}</title>
+          <title>OdontOS Print - ${title}</title>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
           <style>
             body { font-family: 'Inter', sans-serif; text-align: center; padding: 0; margin: 0; color: #1e293b; background: white; }
@@ -81,7 +81,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
               <div class="qr-frame">
                 <img src="${qrUrl}" class="qr-image" />
               </div>
-              <div class="brand-footer">BarberOS CLOUD</div>
+              <div class="brand-footer">OdontOS CLOUD</div>
             </div>
           </div>
           <script>

@@ -1,6 +1,6 @@
 {
   "name": "Odontos SaaS - Backend API",
-  "description": "API Core para la gestión de una barberia con motor contable e inventarios.",
+  "description": "API Core para la gestión de una clinica odontologica con motor contable e inventarios.",
   "requestFramePermissions": [
     "camera"
   ]

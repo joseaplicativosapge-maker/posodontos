@@ -1,5 +1,5 @@
 
-# BarberOS Backend Infrastructure
+# OdontOS Backend Infrastructure
 
 Este backend proporciona la lógica de negocio necesaria para operar un restaurante de alta complejidad con cumplimiento contable y control de stock riguroso.
 

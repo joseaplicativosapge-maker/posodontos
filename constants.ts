@@ -3,7 +3,7 @@ import { AccountingAccount, AccountNature, AccountingVoucher } from "./types_acc
 
 export const MOCK_COMPANY: any = {
   id: 'c1',
-  name: 'BarberChain Intl.',
+  name: 'OdontoChain Intl.',
   taxId: 'US-999888',
   currency: '$',
   taxRate: 0.19, 

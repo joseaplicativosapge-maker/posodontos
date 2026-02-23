@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Iniciando carga de datos maestros APGE BarberOS...');
+  console.log('🌱 Iniciando carga de datos maestros APGE OdontOS...');
 
   // 1. Empresa base
   const company = await prisma.company.upsert({
@@ -12,7 +12,7 @@ async function main() {
     update: {},
     create: { 
       id: 'c1',
-      name: 'APGE BarberOS - Corporativo',
+      name: 'APGE OdontOS - Corporativo',
       taxId: '900.123.456-1',
       currency: 'COP',
       taxRate: 0.19,
@@ -40,8 +40,8 @@ async function main() {
       create: {
         id: 'b1',
         companyId: company.id,
-        name: 'Barberia Centro (Sede Principal)',
-        address: 'Calle 100 #15-20, Edificio Barberia',
+        name: 'Clinica Centro (Sede Principal)',
+        address: 'Calle 100 #15-20, Edificio Clinica',
         phone: '601 234 5678',
         email: 'centro@odontos.io',
         isActive: true

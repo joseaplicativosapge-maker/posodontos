@@ -118,7 +118,7 @@ export const PublicReservation: React.FC<PublicReservationProps> = ({ branch }) 
           </form>
           
           <div className="mt-12 text-center">
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Powered by BarberOS Reservations</p>
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Powered by OdontOS Reservations</p>
           </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ const api = axios.create({
 
 // Interceptor para inyectar Token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('barber_token');
+  const token = localStorage.getItem('odontos_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -32,7 +32,7 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      localStorage.removeItem('barber_token');
+      localStorage.removeItem('odontos_token');
       // No recargamos para evitar bucles si el backend está caído, solo dejamos que el estado de auth falle
     }
     return Promise.reject(error);

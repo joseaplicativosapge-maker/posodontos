@@ -63,12 +63,12 @@ const swaggerOptions = {
     openapi: '3.0.0',
 
     info: {
-      title: 'APGE BarberOS SaaS API',
+      title: 'APGE OdontOS SaaS API',
       version: '1.0.0',
       description:
-        'Documentación oficial del backend APGE BarberOS POS multisucursal.',
+        'Documentación oficial del backend APGE OdontOS POS multisucursal.',
       contact: {
-        name: 'APGE BarberOS Dev Team',
+        name: 'APGE OdontOS Dev Team',
         email: 'dev@odontos.io',
       },
     },
@@ -108,7 +108,7 @@ app.use(
       showExtensions: true,
       showCommonExtensions: true,
     },
-    customSiteTitle: 'BarberOS API Docs',
+    customSiteTitle: 'OdontOS API Docs',
   })
 );
 
@@ -145,7 +145,7 @@ app.use('/api/reservations', reservationRoutes);
 app.get('/health', (_req, res) => {
   res.json({
     status: 'online',
-    service: 'barber-os-backend',
+    service: 'odonto-os-backend',
     time: new Date(),
   });
 });

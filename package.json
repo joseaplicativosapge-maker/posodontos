@@ -1,7 +1,7 @@
 {
-  "name": "barber-os-backend",
+  "name": "odonto-os-backend",
   "version": "1.0.0",
-  "description": "Backend integral para BarberOS POS Multi-sucursal",
+  "description": "Backend integral para OdontoOS POS Multi-sucursal",
   "main": "server.ts",
   "type": "module",
   "scripts": {

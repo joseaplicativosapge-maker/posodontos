@@ -1,6 +1,6 @@
-# 🍽️ BarberOS SaaS – Guía de Ejecución Local
+# 🍽️ OdontOS SaaS – Guía de Ejecución Local
 
-Esta guía explica paso a paso cómo ejecutar **BarberOS SaaS** en un entorno local para desarrollo o pruebas. El sistema está compuesto por:
+Esta guía explica paso a paso cómo ejecutar **OdontOS SaaS** en un entorno local para desarrollo o pruebas. El sistema está compuesto por:
 
 - **Backend:** Node.js + MySQL + Prisma
 - **Frontend:** Vite + React
@@ -33,7 +33,7 @@ Crea un archivo llamado **`.env`** en la raíz del proyecto y agrega el siguient
 DATABASE_URL="mysql://root:tu_password@localhost:3306/odontos_db"
 
 # Secreto para la generación de tokens JWT
-JWT_SECRET="barber_secret_key_2025"
+JWT_SECRET="odonto_secret_key_2025"
 
 # Puerto del servidor Backend
 PORT=3001
@@ -70,7 +70,7 @@ npx prisma generate
 
 Asegúrate de que:
 - El servicio de **MySQL esté en ejecución**
-- La base de datos **`barber_db`** exista (Prisma puede crearla automáticamente)
+- La base de datos **`odonto_db`** exista (Prisma puede crearla automáticamente)
 
 Luego ejecuta:
 
@@ -97,7 +97,7 @@ npx prisma db seed
 
 ## 5️⃣ Ejecución del Sistema
 
-Para que BarberOS funcione correctamente, debes ejecutar **dos procesos en paralelo**.
+Para que OdontOS funcione correctamente, debes ejecutar **dos procesos en paralelo**.
 
 ### 🖥️ Opción Recomendada: Terminales Separadas
 

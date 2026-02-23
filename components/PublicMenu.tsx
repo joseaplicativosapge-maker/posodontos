@@ -308,7 +308,7 @@ export const PublicMenu: React.FC<PublicMenuProps> = ({ products, branch }) => {
                <Info size={14} className="text-slate-400" />
                <p className="text-[10px] text-slate-500 font-medium">Los precios mostrados ya incluyen impuestos aplicables.</p>
           </div>
-          <p className="mt-8 text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">Powered by BarberOS Cloud</p>
+          <p className="mt-8 text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">Powered by OdontOS Cloud</p>
       </div>
     </div>
   );

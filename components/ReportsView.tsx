@@ -558,7 +558,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                         <div className="space-y-4">
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b pb-2">Información del Emisor</h4>
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black text-slate-800 uppercase">{branches?.find(b => b.id === currentBranchId)?.name || 'BarberOS SaaS'}</p>
+                                <p className="text-[10px] font-black text-slate-800 uppercase">{branches?.find(b => b.id === currentBranchId)?.name || 'OdontOS SaaS'}</p>
                                 <p className="text-[9px] font-bold text-slate-500">NIT: {branches?.find(b => b.id === currentBranchId)?.nit || '900.123.456-1'}</p>
                                 <p className="text-[9px] font-bold text-slate-500 uppercase">Regimen: Responsable de IVA</p>
                             </div>
