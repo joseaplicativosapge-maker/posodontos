@@ -66,10 +66,10 @@ export const KDSView: React.FC<KDSViewProps> = ({ orders, onUpdateOrderStatus, o
 
   const availableTabs = useMemo(() => {
       const allTabs = [
-          { id: 'ALL', label: 'Todo', icon: <Filter size={14} />, roles: 'global' },
-          { id: ProductionArea.KITCHEN, label: 'Cortes', icon: <CalendarPlus2 size={14} />, roles: [Role.CHEF] },
-          { id: ProductionArea.GRILL, label: 'Barba', icon: <UserRound size={14} />, roles: [Role.GRILL_MASTER] },
-          { id: ProductionArea.BAR, label: 'Lavado / Extras', icon: <Droplets size={14} />, roles: [Role.BARTENDER] }
+        { id: 'ALL', label: 'Todo', icon: <Filter size={14} />, roles: 'global' },
+        { id: ProductionArea.KITCHEN, label: 'Consulta / Procedimientos', icon: <CalendarPlus2 size={14} />, roles: [Role.CHEF] },
+        { id: ProductionArea.GRILL, label: 'Especialidades', icon: <UserRound size={14} />, roles: [Role.GRILL_MASTER] },
+        { id: ProductionArea.BAR, label: 'Higiene / Auxiliar', icon: <Droplets size={14} />, roles: [Role.BARTENDER] }
       ];
       if (hasGlobalAccess) return allTabs;
       return allTabs.filter(tab => Array.isArray(tab.roles) && tab.roles.includes(userRole));
