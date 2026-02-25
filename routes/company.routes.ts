@@ -72,9 +72,12 @@ router.post('/', async (req, res) => {
       name,
       taxId,
       currency,
-      taxPercentage,
-      loyaltyEnabled,
-      loyaltyPointsRate
+      taxRate,     
+      impoconsumoRate,
+      impoconsumoEnabled,
+      modules,
+      loyalty,
+      status
     } = req.body;
 
     if (!name) {
@@ -86,9 +89,12 @@ router.post('/', async (req, res) => {
         name,
         taxId,
         currency,
-        taxPercentage,
-        loyaltyEnabled,
-        loyaltyPointsRate
+        taxRate,
+        impoconsumoRate,
+        impoconsumoEnabled,
+        modules,
+        loyalty,
+        status
       }
     });
 
