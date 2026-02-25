@@ -57,4 +57,119 @@ router.put('/settings', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/company:
+ *   post:
+ *     summary: Crear una nueva empresa.
+ *     tags: [Empresa]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/', async (req, res) => {
+  try {
+    const {
+      name,
+      taxId,
+      currency,
+      taxPercentage,
+      loyaltyEnabled,
+      loyaltyPointsRate
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "El nombre de la empresa es obligatorio." });
+    }
+
+    const company = await prisma.company.create({
+      data: {
+        name,
+        taxId,
+        currency,
+        taxPercentage,
+        loyaltyEnabled,
+        loyaltyPointsRate
+      }
+    });
+
+    res.status(201).json(company);
+
+  } catch (error: any) {
+    console.error("Error creando empresa:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @openapi
+ * /api/company/{id}/activate:
+ *   patch:
+ *     summary: Activar empresa.
+ *     tags: [Empresa]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch('/:id/activate', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const company = await prisma.company.findUnique({
+      where: { id }
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Empresa no encontrada." });
+    }
+
+    const updated = await prisma.company.update({
+      where: { id },
+      data: { status: 'ACTIVE' }
+    });
+
+    res.json(updated);
+
+  } catch (error: any) {
+    console.log("Error activando empresa:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @openapi
+ * /api/company/{id}/activate:
+ *   patch:
+ *     summary: Activar empresa.
+ *     tags: [Empresa]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch('/:id/activate', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const company = await prisma.company.findUnique({
+      where: { id }
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Empresa no encontrada." });
+    }
+
+    if (company.status === 'ACTIVE') {
+      return res.status(400).json({ error: "La empresa ya está activa." });
+    }
+
+    const updated = await prisma.company.update({
+      where: { id },
+      data: { status: 'ACTIVE' }
+    });
+
+    res.json(updated);
+
+  } catch (error: any) {
+    console.error("Error activando empresa:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
