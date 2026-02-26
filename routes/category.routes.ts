@@ -130,8 +130,7 @@ router.post('/bulk', async (req, res) => {
     }));
 
     const result = await prisma.category.createMany({
-      data,
-      skipDuplicates: true
+      data
     });
 
     res.status(201).json(result);
