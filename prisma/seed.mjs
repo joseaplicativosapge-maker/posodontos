@@ -77,8 +77,8 @@ async function main() {
       await prisma.accountingAccount.upsert({
          where: { 
           code_companyId: {
-            code,
-            companyId
+            code: acc.code,       // ← faltaba acc.
+            companyId: company.id // ← faltaba company.id
           }
         },
         update: {
