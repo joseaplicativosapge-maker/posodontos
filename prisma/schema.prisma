@@ -197,7 +197,7 @@ model User {
 
 model AccountingAccount {
   id                 String        @id @default(cuid())
-  code               String        @unique
+  code               String
   name               String
   nature             AccountNature
   financialStatement String
@@ -207,6 +207,7 @@ model AccountingAccount {
 
   entries AccountingEntry[]
 
+  @@unique([code, companyId])
   @@map("AccountingAccount")
 }
 

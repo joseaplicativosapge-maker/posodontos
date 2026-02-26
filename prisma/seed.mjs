@@ -75,7 +75,12 @@ async function main() {
 
     for (const acc of puc) {
       await prisma.accountingAccount.upsert({
-        where: { code: acc.code },
+         where: { 
+          code_companyId: {
+            code,
+            companyId
+          }
+        },
         update: {
           nature: acc.nature,
           financialStatement: acc.statement
