@@ -134,4 +134,59 @@ router.post('/vouchers', async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/puc/bulk:
+ *   post:
+ *     summary: Registra el catálogo de cuentas (PUC).
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/puc/bulk', async (req, res) => {
+  try {
+
+    const { companyId, accounts } = req.body;
+
+    if (!companyId) {
+      return res.status(400).json({ error: 'companyId requerido' });
+    }
+
+    if (!accounts || !Array.isArray(accounts)) {
+      return res.status(400).json({ error: 'accounts debe ser un array' });
+    }
+
+    const result = await Promise.all(
+      accounts.map((acc: any) =>
+        prisma.accountingAccount.upsert({
+          where: {
+            code_companyId: {
+              code: acc.code,
+              companyId
+            }
+          },
+          update: {
+            name: acc.name,
+            nature: acc.nature,
+            financialStatement: acc.financialStatement
+          },
+          create: {
+            code: acc.code,
+            name: acc.name,
+            nature: acc.nature,
+            financialStatement: acc.financialStatement,
+            companyId
+          }
+        })
+      )
+    );
+
+    res.status(201).json({ count: result.length });
+
+  } catch (error: any) {
+    console.error(error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
