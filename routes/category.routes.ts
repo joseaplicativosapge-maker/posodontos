@@ -104,4 +104,41 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+
+/**
+ * @openapi
+ * /api/categories:
+ *   delete:
+ *     summary: Premite cargar varias categoría
+ *     tags: [Productos]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/bulk', async (req, res) => {
+  try {
+    const { categories, companyId } = req.body;
+
+    if (!categories || !Array.isArray(categories)) {
+      return res.status(400).json({ error: 'categories debe ser un array' });
+    }
+
+    const data = categories.map((cat: any) => ({
+      id: `cat-${Date.now()}-${Math.random()}`,
+      name: cat.name,
+      isActive: cat.isActive ?? true,
+      companyId: companyId
+    }));
+
+    const result = await prisma.category.createMany({
+      data,
+      skipDuplicates: true
+    });
+
+    res.status(201).json(result);
+
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
