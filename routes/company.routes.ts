@@ -250,5 +250,4 @@ router.get('/exists', async (req, res) => {
   }
 });
 
-
 export default router;
