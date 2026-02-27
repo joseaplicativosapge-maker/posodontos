@@ -217,12 +217,29 @@ router.get('/exists', async (req, res) => {
         ].filter(Boolean) as any
       },
       select: {
-        id: true
+        id: true,
+        name: true,
+        taxId: true,
+        currency: true,
+        taxRate: true,
+        impoconsumoRate: true,
+        impoconsumoEnabled: true,
+        modules: true,
+        loyalty: true,
+        status: true,
       }
     });
 
+    if (!company) {
+      return res.json({
+        exists: false,
+        company: null
+      });
+    }
+
     return res.json({
-      exists: !!company
+      exists: true,
+      company
     });
 
   } catch (error: any) {
@@ -232,5 +249,6 @@ router.get('/exists', async (req, res) => {
     });
   }
 });
+
 
 export default router;
