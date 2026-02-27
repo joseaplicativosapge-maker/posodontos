@@ -142,14 +142,14 @@ router.patch('/:id/activate', async (req, res) => {
 
 /**
  * @openapi
- * /api/company/{id}/activate:
+ * /api/company/{id}/inactive:
  *   patch:
  *     summary: Activar empresa.
  *     tags: [Empresa]
  *     security:
  *       - bearerAuth: []
  */
-router.patch('/:id/activate', async (req, res) => {
+router.patch('/:id/inactive', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -161,13 +161,13 @@ router.patch('/:id/activate', async (req, res) => {
       return res.status(404).json({ error: "Empresa no encontrada." });
     }
 
-    if (company.status === 'ACTIVE') {
-      return res.status(400).json({ error: "La empresa ya está activa." });
+    if (company.status === 'INACTIVE') {
+      return res.status(400).json({ error: "La empresa ya está inactivo." });
     }
 
     const updated = await prisma.company.update({
       where: { id },
-      data: { status: 'ACTIVE' }
+      data: { status: 'INACTIVE' }
     });
 
     res.json(updated);
@@ -175,6 +175,61 @@ router.patch('/:id/activate', async (req, res) => {
   } catch (error: any) {
     console.error("Error activando empresa:", error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @openapi
+ * /api/company/exists:
+ *   get:
+ *     summary: Verifica si una empresa existe por taxId o email.
+ *     tags: [Empresa]
+ *     parameters:
+ *       - in: query
+ *         name: taxId
+ *         schema:
+ *           type: string
+ *         required: false
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Resultado de la verificación
+ */
+router.get('/exists', async (req, res) => {
+  try {
+    const { taxId, email } = req.query;
+
+    if (!taxId && !email) {
+      return res.status(400).json({
+        error: "Debe enviar taxId o email."
+      });
+    }
+
+    const company = await prisma.company.findFirst({
+      where: {
+        OR: [
+          taxId ? { taxId: String(taxId) } : undefined,
+          email ? { email: String(email) } : undefined,
+        ].filter(Boolean) as any
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return res.json({
+      exists: !!company
+    });
+
+  } catch (error: any) {
+    console.error("Error verificando empresa:", error);
+    return res.status(500).json({
+      error: "Error interno del servidor."
+    });
   }
 });
 
