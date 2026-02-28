@@ -36,7 +36,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         try {
           const data = await authService.login(pin);
           if (data.success) {
-            console.log('LoginView: ',data);
             onLogin(data.user);
             notify(`Bienvenido, ${data.user.name}`, 'success');
           }

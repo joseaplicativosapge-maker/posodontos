@@ -436,6 +436,30 @@ export interface InventoryItem {
   supplierId?: string;
 }
 
+export interface ToothStatus {
+  number: number;
+  condition: string;
+}
+
+export interface DentalClinicalHistory {
+  id: string;
+  customerId: string;
+  createdAt: string;
+
+  motivoConsulta: string;
+  enfermedadActual: string;
+  antecedentesMedicos: string;
+  antecedentesOdontologicos: string;
+  examenExtraoral: string;
+  examenIntraoral: string;
+
+  diagnostico: string;
+  planTratamiento: string;
+
+  odontogram: ToothStatus[];
+  consentimientoFirmado: boolean;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -459,6 +483,7 @@ export interface CartItem {
   notes?: string;
   status: ItemStatus; 
   price?: number;
+  clinicalHistory?: DentalClinicalHistory;
 }
 
 export interface Order {

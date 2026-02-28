@@ -7,7 +7,6 @@ export const authService = {
       if (response.data.token) {
         localStorage.setItem('odontos_token', response.data.token);
       }
-      console.log('Auth.service Response: ', response.data);
       return response.data;
     } catch (error) {
       throw error;
