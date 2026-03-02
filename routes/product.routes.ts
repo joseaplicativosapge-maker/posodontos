@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 // @ts-ignore
 import { PrismaClient } from '@prisma/client';
@@ -6,15 +5,6 @@ import { PrismaClient } from '@prisma/client';
 const router = Router();
 const prisma = new PrismaClient();
 
-/**
- * @openapi
- * /api/products:
- *   get:
- *     summary: Lista todos los productos con sus categorías y detalles de receta.
- *     tags: [Productos]
- *     security:
- *       - bearerAuth: []
- */
 router.get('/', async (req, res) => {
   try {
     const { companyId } = req.query;
@@ -43,15 +33,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * @openapi
- * /api/products/categories:
- *   get:
- *     summary: Lista las categorías de servicio.
- *     tags: [Productos]
- *     security:
- *       - bearerAuth: []
- */
 router.get('/categories', async (req, res) => {
   const categories = await prisma.category.findMany({
     orderBy: { name: 'asc' }
@@ -59,120 +40,134 @@ router.get('/categories', async (req, res) => {
   res.json(categories);
 });
 
-
-/**
- * @openapi
- * /api/products:
- *   post:
- *     summary: Crea un nuevo servicio o producto con receta
- *     tags: [Productos]
- *     security:
- *       - bearerAuth: []
- */
 router.post('/', async (req, res) => {
-  // mira es aca: se agregan campos de promociones y contabilidad
   const { 
-    id, companyId, category, name, price, cost, type, imageUrl,
-    productionArea, ingredients, comboItems, requiresPreparation, 
+    companyId, category, name, price, cost,
+    type, productType,
+    imageUrl, productionArea, ingredients, comboItems,
     taxType, pucIncomeAccountId, promotionType, promotionValue 
   } = req.body;
 
+  // ✅ FIX 1: usar productTypeFinal en TODO, no mezclar type y productType
+  const productTypeFinal = (type || productType || '').toString().trim();
+  // ✅ FIX 2: category puede llegar como string ID u objeto {id, name, ...}
+  const categoryId = typeof category === 'object' ? category?.id : category;
+
   try {
+    const newProductId = `p-${Date.now()}`;
 
     const product = await prisma.product.create({
       data: {
-        id: `p-${Date.now()}`,
-        company: {
-          connect: { id: companyId || 'c1' }
-        },
-        category: {
-          connect: { id: category }
-        },
+        id: newProductId,
+        company: { connect: { id: companyId || 'c1' } },
+        category: { connect: { id: categoryId } },
         name,
         price: Number(price),
         cost: Number(cost),
-        type,
+        type: productTypeFinal,
         imageUrl,
         productionArea,
-        // mira es aca: persistencia de nuevos campos
         taxType,
         pucIncomeAccountId,
         promotionType,
         promotionValue: promotionValue ? Number(promotionValue) : null,
-        ingredients: type === 'PREPARED' ? {
-          create: (ingredients || []).map((ing: any) => ({
-            inventoryItemId: ing.inventoryItemId,
-            quantity: Number(ing.quantity)
-          }))
-        } : undefined,
-        comboItems: type === 'COMBO' ? {
-          create: (comboItems || []).map((ci: any) => ({
-            childProductId: ci.productId,
-            quantity: Number(ci.quantity)
-          }))
-        } : undefined
       }
     });
+
+    // ✅ FIX 3: crear ingredientes SEPARADO del create del producto
+    if (productTypeFinal === 'PREPARADO' && ingredients?.length > 0) {
+      await prisma.recipeItem.createMany({
+        data: ingredients.map((ing: any) => ({
+          id: `ri-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          productId: newProductId,
+          inventoryItemId: ing.inventoryItemId,
+          quantity: Number(ing.quantity)
+        }))
+      });
+    }
+
+    // ✅ FIX 4: usar comboParents en lugar de comboItems (nombre correcto del schema)
+    if (productTypeFinal === 'COMBO' && comboItems?.length > 0) {
+      await prisma.comboItem.createMany({
+        data: comboItems.map((ci: any) => ({
+          id: `ci-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          parentProductId: newProductId,
+          childProductId: ci.productId || ci.childProductId,
+          quantity: Number(ci.quantity)
+        }))
+      });
+    }
+
     res.status(201).json(product);
   } catch (error: any) {
+    console.error('ERROR POST:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-/**
- * @openapi
- * /api/products/{id}:
- *   put:
- *     summary: Actualizar un producto existente
- *     tags: [Productos]
- *     security:
- *       - bearerAuth: []
- */
 router.put('/:id', async (req, res) => {
-  // mira es aca: se habilitan campos de ofertas y fiscalidad en la actualización
   const { 
-    category, name, price, cost, type, imageUrl,
-    productionArea, ingredients, comboItems, requiresPreparation, 
+    category, name, price, cost,
+    type, productType,
+    imageUrl, productionArea, ingredients, comboItems,
     taxType, pucIncomeAccountId, promotionType, promotionValue 
   } = req.body;
 
-  try {
+  // ✅ FIX 1: normalizar productType
+  const productTypeFinal = (type || productType || '').toString().trim();
+  // ✅ FIX 2: category puede llegar como objeto o string
+  const categoryId = typeof category === 'object' ? category?.id : category;
 
+  try {
+    // ✅ FIX 3: primero borrar relaciones anteriores
     await prisma.recipeItem.deleteMany({ where: { productId: req.params.id } });
     await prisma.comboItem.deleteMany({ where: { parentProductId: req.params.id } });
 
+    // ✅ FIX 4: actualizar el producto SIN ingredientes anidados
     const product = await prisma.product.update({
       where: { id: req.params.id },
       data: {
-        category: {
-          connect: { id: category.id }
-        },
+        category: { connect: { id: categoryId } },
         name,
         price: Number(price),
         cost: Number(cost),
-        type,
+        type: productTypeFinal,
         imageUrl,
         productionArea,
         taxType,
         pucIncomeAccountId,
         promotionType,
         promotionValue: promotionValue ? Number(promotionValue) : null,
-        ingredients: type === 'PREPARED' ? {
-          create: (ingredients || []).map((ing: any) => ({
-            inventoryItemId: ing.inventoryItemId,
-            quantity: Number(ing.quantity)
-          }))
-        } : undefined,
-        comboItems: type === 'COMBO' ? {
-          create: (comboItems || []).map((ci: any) => ({
-            childProductId: ci.productId,
-            quantity: Number(ci.quantity)
-          }))
-        } : undefined
       }
     });
+
+    // ✅ FIX 5: crear ingredientes SEPARADO del update
+    if (productTypeFinal === 'PREPARADO' && ingredients?.length > 0) {
+      await prisma.recipeItem.createMany({
+        data: ingredients.map((ing: any) => ({
+          id: `ri-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          productId: req.params.id,
+          inventoryItemId: ing.inventoryItemId,
+          quantity: Number(ing.quantity)
+        }))
+      });
+    }
+
+    // ✅ FIX 6: crear combos SEPARADO del update
+    if (productTypeFinal === 'COMBO' && comboItems?.length > 0) {
+      await prisma.comboItem.createMany({
+        data: comboItems.map((ci: any) => ({
+          id: `ci-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          parentProductId: req.params.id,
+          childProductId: ci.productId || ci.childProductId,
+          quantity: Number(ci.quantity)
+        }))
+      });
+    }
+
     res.json(product);
   } catch (error: any) {
+    console.error('ERROR PUT:', error.message);
     res.status(400).json({ error: error.message });
   }
 });

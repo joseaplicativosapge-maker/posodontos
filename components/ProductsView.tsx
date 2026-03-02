@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Product, ProductionArea, Category, ProductType, RecipeItem, ComboItem, Branch, PromotionType, InventoryItem } from '../types';
-import { Plus, X, Edit2, Search, ImageIcon, Tag, CalendarPlus2, Info, Layers, QrCode, Trash2, Percent, Calculator, DollarSign, ArrowRight, ShieldCheck, BookOpen, Download, Printer, Utensils, Boxes, BoxSelect } from 'lucide-react';
+import { ChefHat, Plus, X, Save, Edit2, Search, ImageIcon, Tag, LayoutGrid, Info, Layers, QrCode, Trash2, Percent, Calculator, DollarSign, ArrowRight, ShieldCheck, BookOpen, Download, Printer, Utensils, Boxes, BoxSelect } from 'lucide-react';
 import { useNotification } from './NotificationContext';
 import { AccountingAccount } from '../types_accounting';
 import { QrMenuView } from './QrMenuView';
@@ -26,7 +26,6 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Estados del Formulario
   const [prodName, setProdName] = useState('');
   const [prodPrice, setProdPrice] = useState('');
   const [prodCategory, setProdCategory] = useState('');
@@ -44,7 +43,6 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
 
   const formatCOP = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val);
 
-  // Cálculo de costo dinámico según composición
   const calculatedCost = useMemo(() => {
     if (prodType === ProductType.PREPARED) {
       return prodIngredients.reduce((s, ing) => {
@@ -67,9 +65,12 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       setEditingProduct(p);
       setProdName(p.name);
       setProdPrice(p.price.toString());
-      setProdCategory(p.category);
+      setProdCategory(typeof p.category === 'object' ? p.category?.id : p.category);
       setProdArea(p.productionArea);
-      setProdType(p.productType);
+      
+      const resolvedType = (p.type || p.productType) as ProductType;
+      setProdType(resolvedType);
+      
       setProdIngredients(p.ingredients || []);
       setProdComboItems(p.comboItems || []);
       setProdImageUrl(p.imageUrl || '');
@@ -95,19 +96,34 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
     setIsModalOpen(true);
   };
 
+  // ✅ VALIDACIÓN MEJORADA
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prodType === ProductType.PREPARED && prodIngredients.length === 0) {
-        notify("El material no puede estar vacía", "warning"); return;
+
+    if (prodType === ProductType.PREPARED) {
+      const validIngredients = prodIngredients.filter(ing => ing.inventoryItemId !== '' && ing.quantity > 0);
+      if (validIngredients.length === 0) {
+        notify("La receta debe tener al menos un insumo con cantidad válida", "warning"); return;
+      }
+      const hasIncomplete = prodIngredients.some(ing => ing.inventoryItemId === '' || ing.quantity <= 0);
+      if (hasIncomplete) {
+        notify("Todos los insumos deben tener insumo y cantidad seleccionados", "warning"); return;
+      }
     }
-    if (prodType === ProductType.COMBO && prodComboItems.length === 0) {
-        notify("El combo debe incluir servicios", "warning"); return;
+
+    if (prodType === ProductType.COMBO) {
+      const validComboItems = prodComboItems.filter(ci => ci.productId !== '' && ci.quantity > 0);
+      if (validComboItems.length === 0) {
+        notify("El combo debe incluir al menos un producto válido", "warning"); return;
+      }
+      const hasIncomplete = prodComboItems.some(ci => ci.productId === '' || ci.quantity <= 0);
+      if (hasIncomplete) {
+        notify("Todos los productos del combo deben estar seleccionados con cantidad válida", "warning"); return;
+      }
     }
 
     const data: Product = {
       id: editingProduct?.id || null,
-
-      // Esto esta cableado company id debe de venir de la session
       companyId: 'c1',
       name: prodName.toUpperCase(),
       price: parseFloat(prodPrice),
@@ -129,8 +145,6 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
     if (editingProduct) onUpdateProduct(data);
     else onAddProduct(data);
     setIsModalOpen(false);
-
-    
     notify("Catálogo actualizado", "success");
   };
 
@@ -174,10 +188,10 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-6">
         <div>
             <h2 className="text-3xl font-black text-slate-800 tracking-tighter flex items-center gap-3">
-                <CalendarPlus2 className="text-brand-600" size={32} />
-                Servicios
+                <ChefHat className="text-brand-600" size={32} />
+                Cartas y Menús
             </h2>
-            <p className="text-slate-500 font-medium text-xs tracking-widest mt-1">Gestión avanzada de servicios.</p>
+            <p className="text-slate-500 font-medium text-xs tracking-widest mt-1">Gestión avanzada de platos y combos.</p>
         </div>
         <div className="flex gap-2 print:hidden">
             <button onClick={handleExportCSV} className="bg-white border border-emerald-200 text-emerald-600 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-emerald-50 transition-all flex items-center gap-2"><Download size={16}/> Descargar Excel</button>
@@ -189,31 +203,23 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
 
       <div className="mb-8 relative group print:hidden">
           <Search className="absolute left-5 top-4 text-slate-400" size={20} />
-          <input type="text" placeholder="Buscar servicio..." className="w-full pl-14 pr-6 py-4 border-none bg-white rounded-3xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input type="text" placeholder="Buscar plato o combo..." className="w-full pl-14 pr-6 py-4 border-none bg-white rounded-3xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
+
       {displayProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
           <div className="bg-slate-100 w-32 h-32 rounded-full flex items-center justify-center mb-6">
-            <CalendarPlus2 size={48} className="text-slate-300" />
+            <ChefHat size={48} className="text-slate-300" />
           </div>
-          <h3 className="text-2xl font-black">
-            Sin servicios
-          </h3>
-          <p className="text-slate-500 mt-3 max-w-xs">
-            No existen servicios registrados
-          </p>
-          <button
-            onClick={() => openModal()} 
-            className="mt-8 bg-slate-900 text-white px-10 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-2"
-          >
+          <h3 className="text-2xl font-black">Sin productos</h3>
+          <p className="text-slate-500 mt-3 max-w-xs">No existen productos registrados</p>
+          <button onClick={() => openModal()} className="mt-8 bg-slate-900 text-white px-10 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
             <Plus size={18} />
-            Crear primer servicio
+            Crear primer producto
           </button>
         </div>
       ) : (
-        
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {displayProducts.map(p => {
             const hasPromo = p.promotionType !== PromotionType.NONE;
             return (
@@ -221,18 +227,15 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                 <div className="h-44 overflow-hidden relative">
                     <img src={p.imageUrl || `${import.meta.env.VITE_URL_BASE}/assets/img/default.png`} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute top-4 left-4 bg-slate-900/80 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md">{p.category?.name}</div>
-                    
                     {hasPromo && (
                         <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1.5 animate-pulse">
                             <Tag size={12}/> {p.promotionType === PromotionType.PERCENTAGE ? `${p.promotionValue}% OFF` : 'OFERTA'}
                         </div>
                     )}
-                    
                     {p.isCombo && !hasPromo && <div className="absolute top-4 right-4 bg-purple-600 text-white p-1.5 rounded-xl shadow-lg"><BoxSelect size={16}/></div>}
                 </div>
                 <div className="p-6 flex-1 flex flex-col">
                     <h4 className="font-black text-slate-800 uppercase tracking-tight mb-2 text-sm leading-tight">{p.name}</h4>
-                    
                     {hasPromo && (
                         <div className="mb-3 p-2 bg-emerald-50 rounded-xl border border-emerald-100">
                              <p className="text-[10px] font-black text-emerald-700 uppercase leading-none">
@@ -242,12 +245,10 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                              </p>
                         </div>
                     )}
-
                     <div className="flex gap-2 items-center flex-wrap mb-4">
                         <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${p.type === ProductType.COMBO ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>{p.type}</span>
                         {p.requiresPreparation && <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[8px] font-black uppercase">RECETA</span>}
                     </div>
-
                     <div className="mt-auto flex justify-between items-end">
                         <div>
                             {hasPromo && p.type === PromotionType.FIXED_PRICE ? (
@@ -267,8 +268,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
               </div>
             );
           })}
-          
-      </div>
+        </div>
       )}
 
       {isModalOpen && (
@@ -276,8 +276,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
               <div className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 flex flex-col max-h-[92vh]">
                   <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                       <div className="flex items-center gap-3">
-                          <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg"><CalendarPlus2 size={20}/></div>
-                          <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{editingProduct ? 'Editar Servicio' : 'Alta Nuevo Servicio'}</h3>
+                          <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg"><ChefHat size={20}/></div>
+                          <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{editingProduct ? 'Editar Producto' : 'Alta Nuevo Plato'}</h3>
                       </div>
                       <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-xl shadow-sm text-slate-400 hover:text-slate-700 transition-all"><X size={20}/></button>
                   </div>
@@ -285,25 +285,16 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                           <div className="space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Nombre Comercial del Servicio</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Nombre Comercial del Plato</label>
                                     <input required type="text" className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold focus:ring-2 focus:ring-brand-500 outline-none uppercase text-xs" value={prodName} onChange={e => setProdName(e.target.value)} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Categoría del Servicio</label>
-
-                                        <select
-                                            className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-[10px] uppercase"
-                                            value={prodCategory}
-                                            onChange={(e) => setProdCategory(e.target.value)}
-                                            >
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Categoría del Menú</label>
+                                        <select className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-[10px] uppercase" value={prodCategory} onChange={(e) => setProdCategory(e.target.value)}>
                                             <option value="" disabled>Seleccione categoría</option>
-                                            {categories.map(c => (
-                                                <option key={c.id} value={c.id}>
-                                                {c.name}
-                                                </option>
-                                            ))}
-                                            </select>
+                                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Precio al Público ($)</label>
@@ -313,48 +304,105 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Estación de Despacho</label>
-                                        <select className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-[10px] uppercase" value={prodArea} onChange={e => setProdArea(e.target.value as any)}>{Object.values(ProductionArea).map(a => <option key={a} value={a}>{a}</option>)}</select>
+                                        <select className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-[10px] uppercase" value={prodArea} onChange={e => setProdArea(e.target.value as any)}>
+                                            {Object.values(ProductionArea).map(a => <option key={a} value={a}>{a}</option>)}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Configuración Técnica</label>
                                         <select className="w-full bg-slate-900 text-white border-none rounded-2xl p-4 font-black text-[10px] uppercase" value={prodType} onChange={e => setProdType(e.target.value as ProductType)}>
-                                            <option value={ProductType.PREPARED}>Servicio con insumos</option>
+                                            <option value={ProductType.PREPARED}>Plato Preparado (Receta)</option>
                                             <option value={ProductType.COMBO}>Combo (Multi-Producto)</option>
                                         </select>
                                     </div>
                                 </div>
 
+                                {/* ✅ SECCIÓN DE RECETA / COMBO CON VALIDACIÓN VISUAL */}
                                 <div className="bg-slate-100 p-6 rounded-[2rem] border border-slate-200">
                                     <div className="flex justify-between items-center mb-4">
                                         <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                            {prodType === ProductType.PREPARED ? <><Utensils size={14} className="text-brand-600"/> Definición de Receta</> : <><BoxSelect size={14} className="text-purple-600"/> Componentes del Combo</>}
+                                            {prodType === ProductType.PREPARED
+                                              ? <><Utensils size={14} className="text-brand-600"/> Definición de Receta</>
+                                              : <><BoxSelect size={14} className="text-purple-600"/> Componentes del Combo</>}
                                         </h4>
                                         <button type="button" onClick={prodType === ProductType.PREPARED ? addIngredient : addComboItem} className="bg-white p-2 rounded-xl text-brand-600 shadow-sm border border-slate-200 hover:bg-brand-50 transition-all"><Plus size={16}/></button>
                                     </div>
                                     <div className="space-y-2">
-                                        {prodType === ProductType.PREPARED ? prodIngredients.map((ing, idx) => (
-                                            <div key={idx} className="flex gap-2 items-center animate-in slide-in-from-left-2">
-                                                <select className="flex-1 bg-white rounded-xl p-3 text-[10px] font-bold border-none outline-none" value={ing.inventoryItemId} onChange={e => updateIngredient(idx, 'inventoryItemId', e.target.value)}><option value="">Seleccione Material...</option>{inventory.map(inv => <option key={inv.id} value={inv.id}>{inv.name} ({inv.unit})</option>)}</select>
-                                                <input type="number" step="0.01" className="w-20 bg-white rounded-xl p-3 text-center font-black text-xs border-none outline-none" value={ing.quantity} onChange={e => updateIngredient(idx, 'quantity', parseFloat(e.target.value))} />
-                                                <button type="button" onClick={() => removeIngredient(idx)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
-                                            </div>
-                                        )) : prodComboItems.map((ci, idx) => (
-                                            <div key={idx} className="flex gap-2 items-center animate-in slide-in-from-left-2">
-                                                <select className="flex-1 bg-white rounded-xl p-3 text-[10px] font-bold uppercase border-none outline-none" value={ci.productId} onChange={e => updateComboItem(idx, 'productId', e.target.value)}><option value="">Producto...</option>{products.filter(p => p.id !== editingProduct?.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                                                <input type="number" className="w-16 bg-white rounded-xl p-3 text-center font-black text-xs border-none outline-none" value={ci.quantity} onChange={e => updateComboItem(idx, 'quantity', parseInt(e.target.value))} />
-                                                <button type="button" onClick={() => removeComboItem(idx)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
-                                            </div>
-                                        ))}
+                                        {prodType === ProductType.PREPARED ? (
+                                          prodIngredients.length === 0 ? (
+                                            <p className="text-center text-[10px] text-slate-400 font-bold uppercase py-4">
+                                              Agregue al menos un insumo a la receta
+                                            </p>
+                                          ) : (
+                                            prodIngredients.map((ing, idx) => {
+                                              const isInvalid = ing.inventoryItemId === '' || ing.quantity <= 0;
+                                              return (
+                                                <div key={idx} className={`flex gap-2 items-center animate-in slide-in-from-left-2 rounded-xl p-1 transition-all ${isInvalid ? 'bg-red-50 border border-red-200' : ''}`}>
+                                                    <select
+                                                      className="flex-1 bg-white rounded-xl p-3 text-[10px] font-bold uppercase border-none outline-none"
+                                                      value={ing.inventoryItemId}
+                                                      onChange={e => updateIngredient(idx, 'inventoryItemId', e.target.value)}
+                                                    >
+                                                      <option value="">Seleccione Insumo...</option>
+                                                      {inventory.map(inv => <option key={inv.id} value={inv.id}>{inv.name} ({inv.unit})</option>)}
+                                                    </select>
+                                                    <input
+                                                      type="number"
+                                                      step="0.01"
+                                                      min="0.01"
+                                                      placeholder="Cant."
+                                                      className="w-20 bg-white rounded-xl p-3 text-center font-black text-xs border-none outline-none"
+                                                      value={ing.quantity || ''}
+                                                      onChange={e => updateIngredient(idx, 'quantity', parseFloat(e.target.value))}
+                                                    />
+                                                    <button type="button" onClick={() => removeIngredient(idx)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                                                </div>
+                                              );
+                                            })
+                                          )
+                                        ) : (
+                                          prodComboItems.length === 0 ? (
+                                            <p className="text-center text-[10px] text-slate-400 font-bold uppercase py-4">
+                                              Agregue al menos un producto al combo
+                                            </p>
+                                          ) : (
+                                            prodComboItems.map((ci, idx) => {
+                                              const isInvalid = ci.productId === '' || ci.quantity <= 0;
+                                              return (
+                                                <div key={idx} className={`flex gap-2 items-center animate-in slide-in-from-left-2 rounded-xl p-1 transition-all ${isInvalid ? 'bg-red-50 border border-red-200' : ''}`}>
+                                                    <select
+                                                      className="flex-1 bg-white rounded-xl p-3 text-[10px] font-bold uppercase border-none outline-none"
+                                                      value={ci.productId}
+                                                      onChange={e => updateComboItem(idx, 'productId', e.target.value)}
+                                                    >
+                                                      <option value="">Producto...</option>
+                                                      {products.filter(p => p.id !== editingProduct?.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                    </select>
+                                                    <input
+                                                      type="number"
+                                                      min="1"
+                                                      className="w-16 bg-white rounded-xl p-3 text-center font-black text-xs border-none outline-none"
+                                                      value={ci.quantity}
+                                                      onChange={e => updateComboItem(idx, 'quantity', parseInt(e.target.value))}
+                                                    />
+                                                    <button type="button" onClick={() => removeComboItem(idx)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                                                </div>
+                                              );
+                                            })
+                                          )
+                                        )}
                                     </div>
                                 </div>
                           </div>
                           
                           <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 flex flex-col">
-                              <div className="flex justify-between items-center mb-6"><h4 className="font-black text-[10px] uppercase text-slate-500 tracking-[0.2em] flex items-center gap-2"><ImageIcon size={14}/> Marketing & Visualización</h4></div>
+                              <div className="flex justify-between items-center mb-6">
+                                <h4 className="font-black text-[10px] uppercase text-slate-500 tracking-[0.2em] flex items-center gap-2"><ImageIcon size={14}/> Marketing & Visualización</h4>
+                              </div>
                               <div className="space-y-6">
                                   <div className="relative group">
                                       <div className="h-40 w-full bg-white border-2 border-dashed border-slate-200 rounded-3xl overflow-hidden flex flex-col items-center justify-center cursor-pointer hover:border-brand-300 transition-all" onClick={() => fileInputRef.current?.click()}>
-                                          {prodImageUrl ? <img src={prodImageUrl} className="w-full h-full object-cover" /> : <><ImageIcon size={40} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase">Fotografía del Servicio</span></>}
+                                          {prodImageUrl ? <img src={prodImageUrl} className="w-full h-full object-cover" /> : <><ImageIcon size={40} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase">Fotografía del Plato</span></>}
                                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                                       </div>
                                   </div>
@@ -381,7 +429,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                   <div className="bg-brand-900 p-6 rounded-[2rem] text-white space-y-4 shadow-xl relative overflow-hidden">
                                       <h4 className="text-[10px] font-black text-brand-400 uppercase tracking-widest flex items-center gap-2"><Calculator size={14}/> Análisis de Utilidad</h4>
                                       <div className="space-y-1">
-                                          <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-slate-400 uppercase">Costo Base Materiales</span><span className="text-md font-black text-emerald-400">{formatCOP(calculatedCost)}</span></div>
+                                          <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-slate-400 uppercase">Costo Base Insumos</span><span className="text-md font-black text-emerald-400">{formatCOP(calculatedCost)}</span></div>
                                           <div className="flex justify-between items-center pt-2 border-t border-white/5"><span className="text-[10px] font-bold text-slate-400 uppercase">Margen Bruto</span><span className="text-xl font-black">{formatCOP(Math.max(0, parseFloat(prodPrice || '0') - calculatedCost))}</span></div>
                                       </div>
                                       <DollarSign className="absolute -right-6 -bottom-6 text-white/5" size={100} />
@@ -390,14 +438,22 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                   <div className="bg-blue-50 p-6 rounded-[2rem] border border-blue-100 space-y-4">
                                       <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={14}/> Mapeo Contable & Fiscal</h4>
                                       <div className="grid grid-cols-2 gap-3">
-                                          <select className="w-full bg-white border-none rounded-xl p-3 text-[10px] font-black uppercase" value={prodTaxType} onChange={e => setProdTaxType(e.target.value as any)}><option value="IVA">IVA ({taxRate * 100}%)</option><option value="IMPOCONSUMO">IMPOC ({impoconsumoRate * 100}%)</option></select>
-                                          <select className="w-full bg-white border-none rounded-xl p-3 text-[10px] font-bold uppercase" value={prodPucIncome} onChange={e => setProdPucIncome(e.target.value)}><option value="">Ingresos (4)...</option>{puc.filter(a => a.code.startsWith('4')).map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select>
+                                          <select className="w-full bg-white border-none rounded-xl p-3 text-[10px] font-black uppercase" value={prodTaxType} onChange={e => setProdTaxType(e.target.value as any)}>
+                                            <option value="IVA">IVA ({taxRate * 100}%)</option>
+                                            <option value="IMPOCONSUMO">IMPOC ({impoconsumoRate * 100}%)</option>
+                                          </select>
+                                          <select className="w-full bg-white border-none rounded-xl p-3 text-[10px] font-bold uppercase" value={prodPucIncome} onChange={e => setProdPucIncome(e.target.value)}>
+                                            <option value="">Ingresos (4)...</option>
+                                            {puc.filter(a => a.code.startsWith('4')).map(a => <option key={a.id} value={a.id}>{a.code}</option>)}
+                                          </select>
                                       </div>
                                   </div>
                               </div>
                           </div>
                       </div>
-                      <button type="submit" className="w-full bg-slate-900 text-white font-black py-6 rounded-[2rem] shadow-xl uppercase tracking-widest text-xs active:scale-95 transition-all">Sincronizar con Catálogo Maestro</button>
+                      <button type="submit" className="w-full bg-slate-900 text-white font-black py-6 rounded-[2rem] shadow-xl uppercase tracking-widest text-xs active:scale-95 transition-all">
+                        Sincronizar con Catálogo Maestro
+                      </button>
                   </form>
               </div>
           </div>
@@ -407,7 +463,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
           <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[300] p-4">
               <div className="bg-white rounded-[3rem] w-full max-w-6xl shadow-2xl overflow-hidden animate-in zoom-in duration-200 h-[85vh] flex flex-col">
                   <div className="p-6 border-b bg-slate-50 flex justify-between items-center">
-                       <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">Servicio Digital QR</h3>
+                       <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">Menú Digital QR</h3>
                        <button onClick={() => setIsQrModalOpen(false)} className="bg-white p-2 rounded-xl text-slate-400"><X size={24}/></button>
                   </div>
                   <div className="flex-1 overflow-hidden">
