@@ -103,7 +103,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
     if (prodType === ProductType.PREPARED) {
       const validIngredients = prodIngredients.filter(ing => ing.inventoryItemId !== '' && ing.quantity > 0);
       if (validIngredients.length === 0) {
-        notify("La receta debe tener al menos un insumo con cantidad válida", "warning"); return;
+        notify("El servicio debe tener al menos un insumo con cantidad válida", "warning"); return;
       }
       const hasIncomplete = prodIngredients.some(ing => ing.inventoryItemId === '' || ing.quantity <= 0);
       if (hasIncomplete) {
@@ -247,7 +247,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                     )}
                     <div className="flex gap-2 items-center flex-wrap mb-4">
                         <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${p.type === ProductType.COMBO ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>{p.type}</span>
-                        {p.requiresPreparation && <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[8px] font-black uppercase">RECETA</span>}
+                        {p.requiresPreparation && <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-[8px] font-black uppercase">INSUMO</span>}
                     </div>
                     <div className="mt-auto flex justify-between items-end">
                         <div>
@@ -311,7 +311,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Configuración Técnica</label>
                                         <select className="w-full bg-slate-900 text-white border-none rounded-2xl p-4 font-black text-[10px] uppercase" value={prodType} onChange={e => setProdType(e.target.value as ProductType)}>
-                                            <option value={ProductType.PREPARED}>Plato Preparado (Receta)</option>
+                                            <option value={ProductType.PREPARED}>Insumos necesarios</option>
                                             <option value={ProductType.COMBO}>Combo (Multi-Producto)</option>
                                         </select>
                                     </div>
@@ -322,7 +322,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                     <div className="flex justify-between items-center mb-4">
                                         <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                                             {prodType === ProductType.PREPARED
-                                              ? <><Utensils size={14} className="text-brand-600"/> Definición de Receta</>
+                                              ? <><Utensils size={14} className="text-brand-600"/> Definición de Insumo</>
                                               : <><BoxSelect size={14} className="text-purple-600"/> Componentes del Combo</>}
                                         </h4>
                                         <button type="button" onClick={prodType === ProductType.PREPARED ? addIngredient : addComboItem} className="bg-white p-2 rounded-xl text-brand-600 shadow-sm border border-slate-200 hover:bg-brand-50 transition-all"><Plus size={16}/></button>
@@ -331,7 +331,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                         {prodType === ProductType.PREPARED ? (
                                           prodIngredients.length === 0 ? (
                                             <p className="text-center text-[10px] text-slate-400 font-bold uppercase py-4">
-                                              Agregue al menos un insumo a la receta
+                                              Agregue al menos un insumo a la insumo
                                             </p>
                                           ) : (
                                             prodIngredients.map((ing, idx) => {
