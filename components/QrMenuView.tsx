@@ -136,7 +136,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                   <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden relative group transition-all hover:shadow-2xl">
                       <div className="bg-brand-600 h-32 relative flex flex-col items-center justify-center overflow-hidden">
                            <div className="bg-white/20 p-2 rounded-xl mb-1 backdrop-blur-md relative z-10"><CalendarPlus2 size={24} className="text-white" /></div>
-                           <h3 className="text-white font-black uppercase text-[10px] tracking-[0.2em] relative z-10">CARTA DIGITAL</h3>
+                           <h3 className="text-white font-black uppercase text-[10px] tracking-[0.2em] relative z-10">CATÁLOGO DIGITAL</h3>
                            <div className="absolute -right-4 -bottom-4 bg-white/5 w-24 h-24 rounded-full"></div>
                       </div>
                       <div className="p-8 text-center relative pt-20">
