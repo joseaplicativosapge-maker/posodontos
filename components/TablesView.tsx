@@ -310,7 +310,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
                         <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl p-4 font-black" value={newTableSeats} onChange={e => setNewTableSeats(Number(e.target.value))} />
                     </div>
                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                        <span className="text-[10px] font-black text-slate-500 uppercase">Es una silla especial</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase">Es una silla especial?</span>
                         <button type="button" onClick={() => setNewIsBar(!newIsBar)} className={`w-12 h-6 rounded-full relative transition-all ${newIsBar ? 'bg-brand-600' : 'bg-slate-300'}`}>
                             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${newIsBar ? 'left-7' : 'left-1'}`}></div>
                         </button>
