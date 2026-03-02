@@ -38,7 +38,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
 
   const handleOpenModal = (table?: Table) => {
       if (table) { setEditingId(table.id); setNewTableName(table.name); setNewTableSeats(table.seats); setNewIsBar(table.isBar || false); }
-      else { setEditingId(null); setNewTableName(''); setNewTableSeats(4); setNewIsBar(false); }
+      else { setEditingId(null); setNewTableName(''); setNewTableSeats(1); setNewIsBar(false); }
       setIsModalOpen(true);
   };
 
