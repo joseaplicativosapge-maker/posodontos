@@ -309,12 +309,12 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Nro Asientos / Sillas</label>
                         <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl p-4 font-black" value={newTableSeats} onChange={e => setNewTableSeats(Number(e.target.value))} />
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                    {/*<div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                         <span className="text-[10px] font-black text-slate-500 uppercase">Es una Barra</span>
                         <button type="button" onClick={() => setNewIsBar(!newIsBar)} className={`w-12 h-6 rounded-full relative transition-all ${newIsBar ? 'bg-brand-600' : 'bg-slate-300'}`}>
                             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${newIsBar ? 'left-7' : 'left-1'}`}></div>
                         </button>
-                    </div>
+                    </div>*/}
                     <button type="submit" className="w-full bg-slate-900 text-white font-black py-6 rounded-[2.5rem] uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all">Guardar Ubicación</button>
                 </form>
             </div>
