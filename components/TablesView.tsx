@@ -23,7 +23,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
   const { refreshBranchData } = useBranch();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newTableName, setNewTableName] = useState('');
-  const [newTableSeats, setNewTableSeats] = useState(4);
+  const [newTableSeats, setNewTableSeats] = useState(1);
   const [newIsBar, setNewIsBar] = useState(false);
 
   const [isMergeMode, setIsMergeMode] = useState(false);
