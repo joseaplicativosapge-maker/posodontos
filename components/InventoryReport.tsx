@@ -234,7 +234,7 @@ export const InventoryReport: React.FC<InventoryReportProps> = ({ inventory, pro
                         {item.name}
                       </p>
                       <p className="text-[10px] text-slate-400 font-bold uppercase">
-                        {item.category}
+                        {typeof item.category === 'object' ? item.category?.name : item.category}
                       </p>
                     </td>
 
@@ -313,7 +313,7 @@ export const InventoryReport: React.FC<InventoryReportProps> = ({ inventory, pro
                         {item.name}
                       </p>
                       <p className="text-[10px] text-slate-400 font-bold uppercase">
-                        {item.category}
+                        {typeof item.category === 'object' ? item.category?.name : item.category}
                       </p>
                     </td>
 
