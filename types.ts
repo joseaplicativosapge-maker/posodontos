@@ -130,9 +130,9 @@ export enum PaymentMethod {
 }
 
 export enum ProductionArea {
-  KITCHEN = 'COCINA',
-  BAR = 'BARRA',
-  GRILL = 'ASADOR'
+  KITCHEN = 'CONSULTA / PROCEDIMIENTOS',
+  BAR = 'HIGIENE / AUXILIAR',
+  GRILL = 'ESPECIALIDADES'
 }
 
 export enum ProductType {
