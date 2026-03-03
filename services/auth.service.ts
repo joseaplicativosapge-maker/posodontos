@@ -21,12 +21,13 @@ export const authService = {
       const response = await api.get('/auth/verify');
       return response.data;
     } catch (error: any) {
-      // Si el token es inválido o el servidor no responde, limpiamos el almacenamiento
+      localStorage.removeItem('odontos_data');
       localStorage.removeItem('odontos_token');
       return { valid: false };
     }
   },
   logout: () => {
+    localStorage.removeItem('odontos_data');
     localStorage.removeItem('odontos_token');
   }
 };
