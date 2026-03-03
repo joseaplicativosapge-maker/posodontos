@@ -1,6 +1,14 @@
 import api from './api';
 
 export const authService = {
+  verifyNit: async (nit: string) => {
+    try {
+      const response = await api.post('/auth/verify-nit', { nit });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
   login: async (pin: string) => {
     try {
       const response = await api.post('/auth/login', { pin });

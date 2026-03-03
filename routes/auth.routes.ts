@@ -9,6 +9,40 @@ const prisma = new PrismaClient();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'odontos_SaaS_2025_secure_key';
 
+const normalizeNit = (value: string) => value.replace(/[.\-]/g, '').trim();
+
+/**
+ * @openapi
+ * /api/auth/verify-nit:
+ *   post:
+ *     summary: Verificar si un NIT de empresa existe y está activo.
+ *     tags: [Autenticacion]
+ */
+router.post('/verify-nit', async (req, res) => {
+  const { nit } = req.body;
+
+  if (!nit) {
+    return res.status(400).json({ error: "Se requiere el NIT de la empresa." });
+  }
+
+  try {
+    const companies = await prisma.company.findMany({
+      where: { status: "ACTIVE" },
+      select: { id: true, name: true, taxId: true }
+    });
+
+    const company = companies.find(c => normalizeNit(c.taxId) === normalizeNit(String(nit)));
+
+    if (!company) {
+      return res.status(404).json({ exists: false, error: "NIT no encontrado o empresa inactiva." });
+    }
+
+    res.json({ exists: true, companyName: company.name });
+  } catch (error: any) {
+    res.status(500).json({ error: "Error en el servidor: " + error.message });
+  }
+});
+
 /**
  * @openapi
  * /api/auth/login:
