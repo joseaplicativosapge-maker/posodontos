@@ -32,6 +32,7 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
+      localStorage.removeItem('odontos_data');
       localStorage.removeItem('odontos_token');
       // No recargamos para evitar bucles si el backend está caído, solo dejamos que el estado de auth falle
     }
