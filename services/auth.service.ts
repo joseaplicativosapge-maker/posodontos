@@ -5,6 +5,7 @@ export const authService = {
     try {
       const response = await api.post('/auth/login', { pin });
       if (response.data.token) {
+        localStorage.setItem('odonto_data', JSON.stringify(response.data));
         localStorage.setItem('odontos_token', response.data.token);
       }
       return response.data;

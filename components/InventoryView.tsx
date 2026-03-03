@@ -141,9 +141,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
         // SEGUNDO: Si es venta directa, guardar producto
         if (isDirectSale && generatedProductId) {
+
+            const raw = localStorage.getItem("gastro_data");
+
+        const companyId = raw
+            ? JSON.parse(raw)?.user?.companyId
+        : null;
+
         const productData: Product = {
             id: generatedProductId,
-            companyId: 'c1',
+            companyId: companyId,
             name: invName.toUpperCase(),
             price: parseFloat(salePrice),
             cost: finalCost,

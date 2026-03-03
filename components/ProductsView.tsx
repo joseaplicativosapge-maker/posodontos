@@ -122,9 +122,15 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       }
     }
 
+    const raw = localStorage.getItem("gastro_data");
+
+        const companyId = raw
+            ? JSON.parse(raw)?.user?.companyId
+        : null;
+
     const data: Product = {
       id: editingProduct?.id || null,
-      companyId: 'c1',
+      companyId: companyId,
       name: prodName.toUpperCase(),
       price: parseFloat(prodPrice),
       cost: calculatedCost,

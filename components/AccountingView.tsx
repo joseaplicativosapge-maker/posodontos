@@ -55,13 +55,20 @@ export const AccountingView: React.FC<AccountingViewProps> = ({
 
   const handleSaveAccount = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const raw = localStorage.getItem("gastro_data");
+
+    const companyId = raw
+        ? JSON.parse(raw)?.user?.companyId
+    : null;
+
     const data: AccountingAccount = {
       id: editingAcc?.id || `acc-${Date.now()}`,
       code: accCode,
       name: accName,
       nature: accNature,
       financialStatement: accStatement,
-      companyId: 'c1',
+      companyId: companyId,
       isCustom: true
     };
 

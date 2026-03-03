@@ -137,9 +137,16 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
     else onAddInventory(inventoryData);
 
     if (isDirectSale) {
+
+        const raw = localStorage.getItem("gastro_data");
+
+        const companyId = raw
+            ? JSON.parse(raw)?.user?.companyId
+        : null;
+
         const productData: Product = {
             id: productId,
-            companyId: 'c1',
+            companyId: companyId,
             name: itemName.toUpperCase(),
             price: parseFloat(salePrice),
             cost: parseFloat(itemCost),
