@@ -583,4 +583,7 @@ export interface DashboardStats {
   todaySales: number;
   orderCount: number;
   topProducts: any[];
+  totalIngredientCost: number;
+  netProfit: number;
+  profitMargin: number;
 }

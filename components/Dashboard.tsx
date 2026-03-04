@@ -1,10 +1,9 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Order, User, CashRegister, RegisterSession, Expense, OrderStatus, Product, InventoryItem, ProductType, DashboardStats, Reservation, ReservationStatus } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { TrendingUp, DollarSign, Timer, Award, Clock, CalendarRange, Lock, 
     Unlock, X, Wallet, ArrowUpCircle, ArrowDownCircle, Calculator, Flame, PlusCircle, 
-    CalendarCheck, Calendar } from 'lucide-react';
+    CalendarCheck, Calendar, CalendarPlus2 } from 'lucide-react';
 import { dataService } from '../services/data.service';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -96,6 +95,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [expenses, today]);
 
   const netFlow = incomeDay - expensesDay;
+
+  // ✅ Utilidad neta de insumos desde el API de stats
+  const ingredientCost = stats?.totalIngredientCost ?? 0;
+  const netProfit = stats?.netProfit ?? (incomeDay - ingredientCost);
+  const profitMargin = stats?.profitMargin ?? (incomeDay > 0 ? ((netProfit / incomeDay) * 100) : 0);
   
   const averageSale = useMemo(() => {
     // // TABLERO: Ticket promedio del día
@@ -181,7 +185,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {/* ✅ GRILLA SUPERIOR: 5 tarjetas incluyendo utilidad neta */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ingresos de Hoy</p>
             <h3 className="text-2xl font-black text-emerald-600">{formatCOP(incomeDay)}</h3>
@@ -211,20 +216,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <h3 className={`text-2xl font-black ${netFlow >= 0 ? 'text-brand-700' : 'text-red-700'}`}>{formatCOP(netFlow)}</h3>
             <div className="flex items-center gap-1 mt-2 text-brand-400 text-[9px] font-bold uppercase">Balance Operativo</div>
         </div>
+
+        {/* ✅ NUEVA TARJETA: Utilidad Neta */}
+        <div className={`p-6 rounded-[2rem] border shadow-sm ${netProfit >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Utilidad Neta</p>
+            <h3 className={`text-2xl font-black ${netProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCOP(netProfit)}</h3>
+            <div className={`flex items-center gap-1 mt-2 text-[9px] font-bold uppercase ${netProfit >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                <CalendarPlus2 size={12}/> MARGEN {profitMargin.toFixed(1)}% INSUMOS
+            </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* ✅ FLUJO DE CAJA con desglose de insumos */}
         <div className="bg-slate-900 p-6 rounded-[2rem] shadow-xl text-white relative overflow-hidden group">
             <div className="relative z-10">
                 <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mb-3">Flujo de Caja Real</p>
                 <div className="flex flex-col gap-1">
-                    <div className="flex justify-between items-center text-xs font-bold border-b border-white/10 pb-2 mb-2">
+                    <div className="flex justify-between items-center text-xs font-bold border-b border-white/10 pb-2 mb-1">
                         <span className="text-slate-400">TOTAL INGRESOS:</span>
                         <span className="text-emerald-400">{formatCOP(incomeDay)}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-slate-400">TOTAL EGRESOS:</span>
-                        <span className="text-red-400">{formatCOP(expensesDay)}</span>
+                        <span className="text-slate-400">EGRESOS ADMIN:</span>
+                        <span className="text-red-400">-{formatCOP(expensesDay)}</span>
+                    </div>
+                    {/* ✅ Costo de insumos consumidos */}
+                    <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-slate-400">COSTO INSUMOS:</span>
+                        <span className="text-orange-400">-{formatCOP(ingredientCost)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-bold border-t border-white/10 pt-2 mt-1">
+                        <span className="text-white font-black uppercase tracking-wider">UTILIDAD NETA:</span>
+                        <span className={`font-black text-sm ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{formatCOP(netProfit)}</span>
                     </div>
                 </div>
             </div>
