@@ -376,7 +376,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                                <Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+
+                                <Tooltip
+                                    cursor={{fill: 'rgba(0,0,0,0.04)'}}
+                                    contentStyle={{
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        background: '#1e293b',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+                                        padding: '10px 16px',
+                                    }}
+                                    labelStyle={{ color: '#f8fafc', fontWeight: 900, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                    itemStyle={{ color: '#00b36b', fontWeight: 900, fontSize: 12 }}
+                                    formatter={(value: any) => [`${value} uds.`, 'Vendidos']}
+                                    />
+                                
                                 <Area type="monotone" dataKey="sales" stroke="#00995c" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -393,7 +407,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <BarChart data={topProducts} layout="vertical">
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 'bold'}} width={120} />
-                            <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none'}} />
+                            <Tooltip
+                                    cursor={{fill: 'rgba(0,0,0,0.04)'}}
+                                    contentStyle={{
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        background: '#1e293b',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+                                        padding: '10px 16px',
+                                    }}
+                                    labelStyle={{ color: '#f8fafc', fontWeight: 900, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                    itemStyle={{ color: '#00b36b', fontWeight: 900, fontSize: 12 }}
+                                    formatter={(value: any) => [`${value} uds.`, 'Vendidos']}
+                                    />
+                            
                             <Bar dataKey="qty" radius={[0, 10, 10, 0]} barSize={20}>
                                 {topProducts.map((_, index) => (
                                     <Cell key={`cell-${index}`} fill={['#cc6600', '#f59e0b', '#fbbf24', '#fcd34d', '#fef3c7'][index % 5]} />
