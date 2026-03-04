@@ -523,6 +523,12 @@ model PurchaseOrder {
   receivedAt DateTime?
   items      PurchaseOrderItem[]
 
+  paymentType    String    @default("CONTADO") 
+  creditDays     Int? 
+  creditDueDate  DateTime?
+  paymentStatus  String    @default("PAGADO")
+  paidAmount     Float     @default(0)
+
   @@map("PurchaseOrder")
 }
 
