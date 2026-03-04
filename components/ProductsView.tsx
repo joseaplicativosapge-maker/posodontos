@@ -17,6 +17,41 @@ interface ProductsViewProps {
   impoconsumoRate: number;
 }
 
+// ✅ RecipeItem extendido con unidad de receta
+interface RecipeItemExtended extends RecipeItem {
+  recipeUnit?: string;
+}
+
+// ✅ Factor de conversión: de unidad de receta → unidad base del inventario
+const getConversionFactor = (recipeUnit: string, inventoryUnit: string): number => {
+  const from = recipeUnit?.toLowerCase();
+  const to = inventoryUnit?.toLowerCase();
+  if (from === to) return 1;
+  if (from === 'gr' && to === 'kg') return 0.001;
+  if (from === 'kg' && to === 'gr') return 1000;
+  if (from === 'ml' && to === 'lt') return 0.001;
+  if (from === 'lt' && to === 'ml') return 1000;
+  if (from === 'g'  && to === 'kg') return 0.001;
+  if (from === 'kg' && to === 'g')  return 1000;
+  if (from === 'mg' && to === 'kg') return 0.000001;
+  if (from === 'mg' && to === 'gr') return 0.001;
+  if (from === 'ml' && to === 'l')  return 0.001;
+  if (from === 'l'  && to === 'ml') return 1000;
+  return 1;
+};
+
+// ✅ Unidades compatibles según la unidad base del inventario
+const getCompatibleUnits = (inventoryUnit: string): string[] => {
+  const u = inventoryUnit?.toLowerCase();
+  if (u === 'kg') return ['kg', 'gr', 'g', 'mg'];
+  if (u === 'gr') return ['gr', 'kg', 'mg'];
+  if (u === 'g')  return ['g', 'kg', 'mg'];
+  if (u === 'lt') return ['lt', 'ml'];
+  if (u === 'l')  return ['l', 'ml'];
+  if (u === 'ml') return ['ml', 'lt', 'l'];
+  return [inventoryUnit || 'und'];
+};
+
 export const ProductsView: React.FC<ProductsViewProps> = ({ 
     products, inventory, categories, puc = [], onAddProduct, onUpdateProduct, currentBranch, taxRate, impoconsumoRate
 }) => {
@@ -31,7 +66,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   const [prodCategory, setProdCategory] = useState('');
   const [prodArea, setProdArea] = useState<ProductionArea>(ProductionArea.KITCHEN);
   const [prodType, setProdType] = useState<ProductType>(ProductType.PREPARED);
-  const [prodIngredients, setProdIngredients] = useState<RecipeItem[]>([]);
+  const [prodIngredients, setProdIngredients] = useState<RecipeItemExtended[]>([]);
   const [prodComboItems, setProdComboItems] = useState<ComboItem[]>([]);
   const [prodImageUrl, setProdImageUrl] = useState('');
   const [prodPromotionType, setProdPromotionType] = useState<PromotionType>(PromotionType.NONE);
@@ -43,12 +78,14 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
 
   const formatCOP = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val);
 
+  // ✅ Costo con conversión de unidades aplicada
   const calculatedCost = useMemo(() => {
     if (prodType === ProductType.PREPARED) {
       return prodIngredients.reduce((s, ing) => {
         const inv = inventory.find(i => i.id === ing.inventoryItemId);
         if (!inv) return s;
-        return s + (ing.quantity * inv.cost);
+        const factor = getConversionFactor(ing.recipeUnit || inv.unit, inv.unit);
+        return s + (ing.quantity * factor * inv.cost);
       }, 0);
     } else if (prodType === ProductType.COMBO) {
       return prodComboItems.reduce((s, ci) => {
@@ -71,7 +108,14 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       const resolvedType = (p.type || p.productType) as ProductType;
       setProdType(resolvedType);
       
-      setProdIngredients(p.ingredients || []);
+      // ✅ Al editar, rellenar recipeUnit desde inventario si no existe (compatibilidad datos viejos)
+      const ingredientsWithUnit = (p.ingredients || []).map((ing: any) => {
+        if (ing.recipeUnit) return ing;
+        const inv = inventory.find(i => i.id === ing.inventoryItemId);
+        return { ...ing, recipeUnit: inv?.unit || '' };
+      });
+      setProdIngredients(ingredientsWithUnit);
+
       setProdComboItems(p.comboItems || []);
       setProdImageUrl(p.imageUrl || '');
       setProdPromotionType(p.promotionType || PromotionType.NONE);
@@ -123,10 +167,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
     }
 
     const raw = localStorage.getItem("gastro_data");
-
-        const companyId = raw
-            ? JSON.parse(raw)?.user?.companyId
-        : null;
+    const companyId = raw ? JSON.parse(raw)?.user?.companyId : null;
 
     const data: Product = {
       id: editingProduct?.id || null,
@@ -154,10 +195,18 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
     notify("Catálogo actualizado", "success");
   };
 
-  const addIngredient = () => setProdIngredients([...prodIngredients, { inventoryItemId: '', quantity: 0 }]);
+  const addIngredient = () =>
+    setProdIngredients([...prodIngredients, { inventoryItemId: '', quantity: 0, recipeUnit: '' }]);
   const removeIngredient = (i: number) => setProdIngredients(prodIngredients.filter((_, idx) => idx !== i));
   const updateIngredient = (i: number, field: string, val: any) => {
-      const n = [...prodIngredients]; n[i] = { ...n[i], [field]: val }; setProdIngredients(n);
+    const n = [...prodIngredients];
+    n[i] = { ...n[i], [field]: val };
+    // Al cambiar el insumo, auto-asignar la unidad base como unidad de receta por defecto
+    if (field === 'inventoryItemId') {
+      const inv = inventory.find(inv => inv.id === val);
+      n[i].recipeUnit = inv?.unit || '';
+    }
+    setProdIngredients(n);
   };
 
   const addComboItem = () => setProdComboItems([...prodComboItems, { productId: '', quantity: 1 }]);
@@ -323,7 +372,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                     </div>
                                 </div>
 
-                                {/* ✅ SECCIÓN DE RECETA / COMBO CON VALIDACIÓN VISUAL */}
+                                {/* ✅ SECCIÓN DE INSUMOS / COMBO CON CONVERSIÓN */}
                                 <div className="bg-slate-100 p-6 rounded-[2rem] border border-slate-200">
                                     <div className="flex justify-between items-center mb-4">
                                         <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
@@ -333,7 +382,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                         </h4>
                                         <button type="button" onClick={prodType === ProductType.PREPARED ? addIngredient : addComboItem} className="bg-white p-2 rounded-xl text-brand-600 shadow-sm border border-slate-200 hover:bg-brand-50 transition-all"><Plus size={16}/></button>
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         {prodType === ProductType.PREPARED ? (
                                           prodIngredients.length === 0 ? (
                                             <p className="text-center text-[10px] text-slate-400 font-bold uppercase py-4">
@@ -341,27 +390,74 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                             </p>
                                           ) : (
                                             prodIngredients.map((ing, idx) => {
+                                              const inv = inventory.find(i => i.id === ing.inventoryItemId);
+                                              const compatibleUnits = inv ? getCompatibleUnits(inv.unit) : [];
                                               const isInvalid = ing.inventoryItemId === '' || ing.quantity <= 0;
+                                              const factor = inv ? getConversionFactor(ing.recipeUnit || inv.unit, inv.unit) : 1;
+                                              const costLine = inv && ing.quantity > 0 ? ing.quantity * factor * inv.cost : 0;
+                                              const isConverting = inv && ing.recipeUnit && ing.recipeUnit.toLowerCase() !== inv.unit.toLowerCase();
+
                                               return (
-                                                <div key={idx} className={`flex gap-2 items-center animate-in slide-in-from-left-2 rounded-xl p-1 transition-all ${isInvalid ? 'bg-red-50 border border-red-200' : ''}`}>
+                                                <div key={idx} className={`rounded-2xl p-3 transition-all border ${isInvalid ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100'}`}>
+
+                                                  {/* Fila 1: selector de insumo + botón eliminar */}
+                                                  <div className="flex gap-2 items-center mb-2">
                                                     <select
-                                                      className="flex-1 bg-white rounded-xl p-3 text-[10px] font-bold uppercase border-none outline-none"
+                                                      className="flex-1 bg-slate-50 rounded-xl p-2.5 text-[10px] font-bold uppercase border-none outline-none"
                                                       value={ing.inventoryItemId}
                                                       onChange={e => updateIngredient(idx, 'inventoryItemId', e.target.value)}
                                                     >
                                                       <option value="">Seleccione Insumo...</option>
                                                       {inventory.map(inv => <option key={inv.id} value={inv.id}>{inv.name} ({inv.unit})</option>)}
                                                     </select>
-                                                    <input
-                                                      type="number"
-                                                      step="0.01"
-                                                      min="0.01"
-                                                      placeholder="Cant."
-                                                      className="w-20 bg-white rounded-xl p-3 text-center font-black text-xs border-none outline-none"
-                                                      value={ing.quantity || ''}
-                                                      onChange={e => updateIngredient(idx, 'quantity', parseFloat(e.target.value))}
-                                                    />
-                                                    <button type="button" onClick={() => removeIngredient(idx)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                                                    <button type="button" onClick={() => removeIngredient(idx)} className="text-slate-300 hover:text-red-500 transition-colors p-1"><Trash2 size={15}/></button>
+                                                  </div>
+
+                                                  {/* Fila 2: cantidad + selector unidad + costo parcial */}
+                                                  {ing.inventoryItemId && (
+                                                    <div className="flex gap-2 items-center">
+                                                      <input
+                                                        type="number"
+                                                        step="0.001"
+                                                        min="0.001"
+                                                        placeholder="Cant."
+                                                        className="w-24 bg-slate-50 rounded-xl p-2.5 text-center font-black text-xs border-none outline-none"
+                                                        value={ing.quantity || ''}
+                                                        onChange={e => updateIngredient(idx, 'quantity', parseFloat(e.target.value))}
+                                                      />
+
+                                                      {/* ✅ Selector de unidad de receta */}
+                                                      <select
+                                                        className="bg-brand-600 text-white rounded-xl px-3 py-2.5 text-[10px] font-black uppercase border-none outline-none cursor-pointer"
+                                                        value={ing.recipeUnit || inv?.unit || ''}
+                                                        onChange={e => updateIngredient(idx, 'recipeUnit', e.target.value)}
+                                                      >
+                                                        {compatibleUnits.map(u => (
+                                                          <option key={u} value={u}>{u.toUpperCase()}</option>
+                                                        ))}
+                                                      </select>
+
+                                                      {/* Costo parcial en tiempo real */}
+                                                      {ing.quantity > 0 && inv && (
+                                                        <div className="ml-auto text-right">
+                                                          <p className="text-[8px] text-slate-400 font-bold uppercase leading-none mb-0.5">costo</p>
+                                                          <p className="text-[11px] font-black text-emerald-600 leading-none">{formatCOP(costLine)}</p>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+
+                                                  {/* ✅ Indicador visual de conversión activa */}
+                                                  {isConverting && ing.quantity > 0 && (
+                                                    <div className="mt-2 bg-brand-50 border border-brand-100 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                                                      <span className="text-[9px] font-black text-brand-600 uppercase">
+                                                        {ing.quantity} {ing.recipeUnit?.toUpperCase()} =
+                                                      </span>
+                                                      <span className="text-[9px] font-black text-slate-700 uppercase">
+                                                        {(ing.quantity * factor).toFixed(4)} {inv?.unit.toUpperCase()} en inventario
+                                                      </span>
+                                                    </div>
+                                                  )}
                                                 </div>
                                               );
                                             })

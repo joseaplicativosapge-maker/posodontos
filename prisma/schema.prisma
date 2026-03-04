@@ -358,6 +358,7 @@ model RecipeItem {
   inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
 
   quantity Float
+  recipeUnit String?
 
   @@map("RecipeItem")
 }

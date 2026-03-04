@@ -81,7 +81,8 @@ router.post('/', async (req, res) => {
           id: `ri-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           productId: newProductId,
           inventoryItemId: ing.inventoryItemId,
-          quantity: Number(ing.quantity)
+          quantity: Number(ing.quantity),
+          recipeUnit: ing.recipeUnit ?? null
         }))
       });
     }
@@ -148,7 +149,8 @@ router.put('/:id', async (req, res) => {
           id: `ri-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           productId: req.params.id,
           inventoryItemId: ing.inventoryItemId,
-          quantity: Number(ing.quantity)
+          quantity: Number(ing.quantity),
+          recipeUnit: ing.recipeUnit ?? null
         }))
       });
     }
