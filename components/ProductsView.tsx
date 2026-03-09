@@ -71,7 +71,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   const [prodImageUrl, setProdImageUrl] = useState('');
   const [prodPromotionType, setProdPromotionType] = useState<PromotionType>(PromotionType.NONE);
   const [prodPromotionValue, setProdPromotionValue] = useState('');
-  const [prodTaxType, setProdTaxType] = useState<'IVA' | 'IMPOCONSUMO'>('IVA');
+  const [prodTaxType, setProdTaxType]     = useState<'NONE' | 'IVA' | 'IMPOCONSUMO'>('NONE');
   const [prodPucIncome, setProdPucIncome] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,7 +120,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       setProdImageUrl(p.imageUrl || '');
       setProdPromotionType(p.promotionType || PromotionType.NONE);
       setProdPromotionValue(p.promotionValue?.toString() || '');
-      setProdTaxType(p.taxType || 'IVA');
+      setProdTaxType(p.taxType || 'NONE');
       setProdPucIncome(p.pucIncomeAccountId || '');
     } else {
       setEditingProduct(null);
@@ -134,7 +134,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
       setProdImageUrl('');
       setProdPromotionType(PromotionType.NONE);
       setProdPromotionValue('');
-      setProdTaxType('IVA');
+      setProdTaxType('NONE');
       setProdPucIncome('');
     }
     setIsModalOpen(true);
@@ -541,6 +541,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                                       <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={14}/> Mapeo Contable & Fiscal</h4>
                                       <div className="grid grid-cols-2 gap-3">
                                           <select className="w-full bg-white border-none rounded-xl p-3 text-[10px] font-black uppercase" value={prodTaxType} onChange={e => setProdTaxType(e.target.value as any)}>
+                                            <option value="NONE">Sin impuesto (0%)</option>
                                             <option value="IVA">IVA ({taxRate * 100}%)</option>
                                             <option value="IMPOCONSUMO">IMPOC ({impoconsumoRate * 100}%)</option>
                                           </select>
