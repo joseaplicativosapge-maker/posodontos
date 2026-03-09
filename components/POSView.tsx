@@ -2,13 +2,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, Plus, Minus, CreditCard, Banknote, QrCode, X, Lock, Send, ReceiptText, 
   UtensilsCrossed, Save, Grid3X3, Unlock, AlertTriangle, 
-  Tag, User, Star, Edit2, History, Clock, Flame, Beer, CalendarPlus2, BellRing, Link
+  Tag, User, Star, Edit2, History, Clock, Flame, Beer, CalendarPlus2, BellRing, Link, CheckCircle
 } from 'lucide-react';
 
 import { 
   Product, CartItem, OrderType, Customer, PaymentMethod, Table, Order, TableStatus, OrderStatus, 
   ItemStatus, Role, LoyaltyConfig, InventoryItem, POSConfig, ProductType, PromotionType, 
-  DocumentType, ImpoconsumoConfig, Branch, CashRegister, ProductionArea, Category 
+  DocumentType, ImpoconsumoConfig, Branch, CashRegister, ProductionArea, Category
 } from '../types';
 
 import { useNotification } from './NotificationContext';
@@ -80,6 +80,43 @@ export const POSView: React.FC<POSViewProps> = ({
 
   const formatCOP = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val);
 
+  // ── IVA badge por item en el carrito (igual que Gastros) ─────────────────
+  const impoconsumoRate = impoconsumoConfig?.rate ?? 0.08;
+
+  const getTaxBadge = (item: CartItem) => {
+    const taxType = (item.product as any).taxType;
+    const linePrice = getEffectivePrice(item.product) * item.quantity;
+
+    if (!taxType || taxType === 'NONE') {
+      return <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider">Sin impuesto</span>;
+    }
+    if (taxType === 'IVA') {
+      return (
+        <span className="text-[7px] font-black text-blue-400 uppercase tracking-wider">
+          IVA ({(taxRate * 100).toFixed(0)}%): {formatCOP(linePrice * taxRate)}
+        </span>
+      );
+    }
+    if (taxType === 'IMPOCONSUMO') {
+      return (
+        <span className="text-[7px] font-black text-orange-400 uppercase tracking-wider">
+          IMPOC ({(impoconsumoRate * 100).toFixed(0)}%): {formatCOP(linePrice * impoconsumoRate)}
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const handleClearAndNewSale = () => {
+    setSelectedMonitorOrder(null);
+    setSelectedOrderId(null);
+    setCart([]);
+    setRedeemedPoints(0);
+    setTempAddress('');
+    setSelectedCustomerState(generalCustomer);
+    if (selectedTable) onSelectTable(undefined);
+  };
+
   const generalCustomer: Customer = useMemo(() => ({
     id: 'consumidor-final', name: 'Consumidor Final', phone: '0000000', points: 0, isActive: true, documentNumber: '222222222222'
   }), []);
@@ -123,10 +160,10 @@ export const POSView: React.FC<POSViewProps> = ({
   }, [selectedTable, selectedSeat, selectedOrderId, orders]);
 
   const allActiveOrders: Order[] = useMemo(() => {
-      return orders.filter(o => 
-          o.status !== OrderStatus.COMPLETED && 
-          o.status !== OrderStatus.CANCELLED
-      ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return orders.filter(o =>
+      o.status !== OrderStatus.COMPLETED &&
+      o.status !== OrderStatus.CANCELLED
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [orders]);
 
   const categoriesList = useMemo(() => [{ key: 'Todos', label: 'Todos' }, ...(categories ?? []).map(c => ({
@@ -174,15 +211,15 @@ export const POSView: React.FC<POSViewProps> = ({
       const price = getEffectivePrice(item.product);
       const itemSub = price * item.quantity;
       sub += itemSub;
-      iva += itemSub * taxRate;
-      if (impoconsumoConfig?.enabled) {
-        const appliesPrepared = (impoconsumoConfig.appliesTo === 'BOTH' || impoconsumoConfig.appliesTo === 'PREPARED') && item.product.productType === ProductType.PREPARED;
-        const appliesDirect = (impoconsumoConfig.appliesTo === 'BOTH' || impoconsumoConfig.appliesTo === 'DIRECT') && item.product.productType === ProductType.DIRECT_SALE;
-        if (appliesPrepared || appliesDirect) impoc += itemSub * impoconsumoConfig.rate;
+      const taxType = (item.product as any).taxType;
+      if (taxType === 'IVA') {
+        iva += itemSub * taxRate;
+      } else if (taxType === 'IMPOCONSUMO') {
+        impoc += itemSub * impoconsumoRate;
       }
     });
     return { sub, iva, impoc };
-  }, [cart, taxRate, impoconsumoConfig]);
+  }, [cart, taxRate, impoconsumoRate]);
 
   const sentSubtotal = focusedOrders.reduce((s, o) => s + (o.subtotal || 0), 0);
   const sentIva = focusedOrders.reduce((s, o) => s + (o.tax || 0), 0);
@@ -225,39 +262,24 @@ export const POSView: React.FC<POSViewProps> = ({
   };
 
   const handleFinalizePayment = (method: PaymentMethod) => {
-        if (!selectedMonitorOrder) return;
-
-        const itemsToCharge = selectedMonitorOrder.items || [];
-        const received = parseFloat(receivedAmount) || currentTotal;
-        const change = Math.max(0, received - currentTotal);
-        const tableId = selectedTable?.id || undefined;
-
-        onProcessPayment(
-            itemsToCharge.map(i => ({ ...i })), // <-- items de la orden seleccionada
-            currentTotal,
-            orderType,
-            method,
-            activeCustomer,
-            redeemedPoints,
-            selectedMonitorOrder.id, // <-- id de la orden
-            received,
-            change,
-            selectedSeat,
-            currentSubtotal,
-            currentIva,
-            currentImpoc,
-            tempAddress,
-            tableId
-        );
-
-        // limpiar estados
-        setSelectedMonitorOrder(null); 
-        setCart([]);
-        setRedeemedPoints(0);
-        setIsPaymentModalOpen(false);
-        setSelectedOrderId(null);
-        if (selectedTable) onSelectTable(undefined);
-    };
+    if (!selectedMonitorOrder) return;
+    const itemsToCharge = selectedMonitorOrder.items || [];
+    const received = parseFloat(receivedAmount) || currentTotal;
+    const change = Math.max(0, received - currentTotal);
+    const tableId = selectedTable?.id || undefined;
+    onProcessPayment(
+      itemsToCharge.map(i => ({ ...i })),
+      currentTotal, orderType, method, activeCustomer, redeemedPoints,
+      selectedMonitorOrder.id, received, change, selectedSeat,
+      currentSubtotal, currentIva, currentImpoc, tempAddress, tableId
+    );
+    setSelectedMonitorOrder(null);
+    setCart([]);
+    setRedeemedPoints(0);
+    setIsPaymentModalOpen(false);
+    setSelectedOrderId(null);
+    if (selectedTable) onSelectTable(undefined);
+  };
 
   const handleRedeemPoints = () => {
     if (activeCustomer.id === 'consumidor-final') return;
@@ -308,7 +330,7 @@ export const POSView: React.FC<POSViewProps> = ({
     (selectedCategory === 'Todos' || p.categoryId === selectedCategory) &&
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
     p.isActive
-    );
+  );
 
   if (!isRegisterOpen) {
     return (
@@ -327,418 +349,447 @@ export const POSView: React.FC<POSViewProps> = ({
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100">
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-100 pb-20 md:pb-0">
-        
-        {Object.keys(products).length !== 0 && (
-            <div className="p-4 md:p-6 space-y-4">
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-1 group">
-                        <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-brand-500" size={20} />
-                        <input type="text" placeholder="Buscar servicio..." className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                    </div>
-                    {onViewTables && (
-                        <button onClick={onViewTables} className="bg-slate-900 text-white p-4 rounded-2xl shadow-lg hover:bg-brand-600 transition-all active:scale-95 flex items-center gap-2"><Grid3X3 size={24} /><span className="hidden lg:inline text-[10px] font-black uppercase">Salón</span></button>
-                    )}
-                </div>
-                <div className="flex space-x-2 overflow-x-auto no-scrollbar py-2">
-                    {categoriesList.map(cat => (
-                        <button key={cat.key} onClick={() => setSelectedCategory(cat.key)} className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap shadow-sm ${
-                            selectedCategory === cat.key
-                                ? 'bg-brand-600 text-white scale-105'
-                                : 'bg-white text-slate-500 hover:bg-slate-50'
-                            }`}>
-                            {cat.label}
-                        </button>
-                    ))}
-                </div>
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-100 pb-20 md:pb-0 relative">
+
+        {selectedMonitorOrder && (
+          <div className="absolute inset-0 z-30 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl px-6 py-4 text-center">
+              <CheckCircle size={28} className="text-emerald-400 mx-auto mb-2"/>
+              <p className="text-white font-black text-xs uppercase tracking-widest">Orden lista para cobro</p>
+              <p className="text-white/60 font-bold text-[9px] uppercase tracking-widest mt-1">
+                #{selectedMonitorOrder.id.slice(-6).toUpperCase()} · {formatCOP(selectedMonitorOrder.total)}
+              </p>
             </div>
+          </div>
         )}
-        
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-8 custom-scrollbar relative">
 
-            {(!products || products.length === 0 || filteredProducts.length === 0) ? (
-                
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center opacity-50">
-                <CalendarPlus2 size={100} className="mb-2 text-slate-300" />
-                <p className="text-slate-400">Servicios vacío</p>
-                </div>
-
-            ) : (
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredProducts.map(product => {
-
-                    const effectivePrice = getEffectivePrice(product);
-                    const isPromo = product.promotionType !== PromotionType.NONE;
-                    const isAvailable = checkProductAvailability(product);
-
-                    return (
-                    <button
-                        key={product.id}
-                        onClick={() => isAvailable && addToCart(product)}
-                        className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden transition-all group flex flex-col relative active:scale-95 animate-in fade-in ${
-                        !isAvailable
-                            ? 'opacity-50 cursor-not-allowed grayscale'
-                            : 'hover:border-brand-300 hover:shadow-xl'
-                        }`}
-                    >
-                        {isPromo && isAvailable && (
-                        <div className="absolute top-3 left-3 z-10 bg-emerald-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
-                            <Tag size={10}/> OFERTA
-                        </div>
-                        )}
-
-                        {!isAvailable && (
-                        <div className="absolute inset-0 z-20 bg-slate-900/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                            <div className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1.5">
-                            <AlertTriangle size={12}/> AGOTADO
-                            </div>
-                            <p className="text-[8px] text-white font-bold mt-1">
-                            Sin materiales
-                            </p>
-                        </div>
-                        )}
-
-                        <div className="h-32 w-full overflow-hidden relative">
-                        <img
-                            src={product.imageUrl || `${import.meta.env.VITE_URL_BASE}/assets/img/default.png`}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                        </div>
-
-                        <div className="p-4 text-left flex-1 flex flex-col justify-between">
-                        <div>
-                            <h4 className="font-black text-slate-800 uppercase text-[11px] leading-tight mb-1 line-clamp-2">
-                            {product.name}
-                            </h4>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase">
-                            {product.category?.name}
-                            </p>
-                        </div>
-
-                        <div className="flex justify-between items-end mt-2">
-                            <div className="flex flex-col">
-                            {isPromo ? (
-                                <>
-                                <span className="text-[10px] text-slate-400 line-through leading-none">
-                                    {formatCOP(product.price)}
-                                </span>
-                                <span className="text-sm font-black text-brand-600">
-                                    {formatCOP(effectivePrice)}
-                                </span>
-                                </>
-                            ) : (
-                                <span className="text-sm font-black text-slate-800">
-                                {formatCOP(product.price)}
-                                </span>
-                            )}
-                            </div>
-                        </div>
-                        </div>
-
-                    </button>
-                    );
-                })}
-                </div>
-
-            )}
-
+        {Object.keys(products).length !== 0 && (
+          <div className="p-4 md:p-6 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-brand-500" size={20} />
+                <input type="text" placeholder="Buscar servicio..." className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+              {onViewTables && (
+                <button onClick={onViewTables} className="bg-slate-900 text-white p-4 rounded-2xl shadow-lg hover:bg-brand-600 transition-all active:scale-95 flex items-center gap-2"><Grid3X3 size={24} /><span className="hidden lg:inline text-[10px] font-black uppercase">Salón</span></button>
+              )}
             </div>
+            <div className="flex space-x-2 overflow-x-auto no-scrollbar py-2">
+              {categoriesList.map(cat => (
+                <button key={cat.key} onClick={() => setSelectedCategory(cat.key)} className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap shadow-sm ${selectedCategory === cat.key ? 'bg-brand-600 text-white scale-105' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-8 custom-scrollbar relative">
+          {(!products || products.length === 0 || filteredProducts.length === 0) ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center opacity-50">
+              <CalendarPlus2 size={100} className="mb-2 text-slate-300" />
+              <p className="text-slate-400">Servicios vacío</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {filteredProducts.map(product => {
+                const effectivePrice = getEffectivePrice(product);
+                const isPromo = product.promotionType !== PromotionType.NONE;
+                const isAvailable = checkProductAvailability(product);
+                // ── Badge de impuesto en tarjeta (igual que Gastros) ──
+                const taxType = (product as any).taxType;
+
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => isAvailable && addToCart(product)}
+                    className={`bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden transition-all group flex flex-col relative active:scale-95 animate-in fade-in ${!isAvailable ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:border-brand-300 hover:shadow-xl'}`}
+                  >
+                    {isPromo && isAvailable && (
+                      <div className="absolute top-3 left-3 z-10 bg-emerald-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
+                        <Tag size={10}/> OFERTA
+                      </div>
+                    )}
+
+                    {/* ── Badge IVA / IMPOCONSUMO en esquina ── */}
+                    {taxType && taxType !== 'NONE' && isAvailable && (
+                      <div className={`absolute top-3 right-3 z-10 px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase shadow ${taxType === 'IVA' ? 'bg-blue-500 text-white' : 'bg-orange-500 text-white'}`}>
+                        {taxType === 'IVA' ? `IVA ${(taxRate * 100).toFixed(0)}%` : `IMPOC ${(impoconsumoRate * 100).toFixed(0)}%`}
+                      </div>
+                    )}
+
+                    {!isAvailable && (
+                      <div className="absolute inset-0 z-20 bg-slate-900/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
+                        <div className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-1.5">
+                          <AlertTriangle size={12}/> AGOTADO
+                        </div>
+                        <p className="text-[8px] text-white font-bold mt-1">Sin materiales</p>
+                      </div>
+                    )}
+
+                    <div className="h-32 w-full overflow-hidden relative">
+                      <img
+                        src={product.imageUrl || `${import.meta.env.VITE_URL_BASE}/assets/img/default.png`}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    </div>
+
+                    <div className="p-4 text-left flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="font-black text-slate-800 uppercase text-[11px] leading-tight mb-1 line-clamp-2">{product.name}</h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase">{product.category?.name}</p>
+                      </div>
+                      <div className="flex justify-between items-end mt-2">
+                        <div className="flex flex-col">
+                          {isPromo ? (
+                            <>
+                              <span className="text-[10px] text-slate-400 line-through leading-none">{formatCOP(product.price)}</span>
+                              <span className="text-sm font-black text-brand-600">{formatCOP(effectivePrice)}</span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-black text-slate-800">{formatCOP(product.price)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="w-full md:w-[380px] bg-white border-l border-slate-200 flex flex-col shadow-2xl relative z-40">
         <div className="flex bg-slate-100 p-1 border-b">
-            <button onClick={() => setRightTab('gestion')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${rightTab === 'gestion' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                <ReceiptText size={14}/> Venta
-            </button>
-            <button onClick={() => setRightTab('monitor')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${rightTab === 'monitor' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                <BellRing size={14}/> Monitor {allActiveOrders.length > 0 && <span className="bg-brand-600 text-white w-4 h-4 flex items-center justify-center rounded-full text-[8px]">{allActiveOrders.length}</span>}
-            </button>
+          <button onClick={() => setRightTab('gestion')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${rightTab === 'gestion' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            <ReceiptText size={14}/> Venta
+          </button>
+          <button onClick={() => setRightTab('monitor')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${rightTab === 'monitor' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            <BellRing size={14}/> Monitor {allActiveOrders.length > 0 && <span className="bg-brand-600 text-white w-4 h-4 flex items-center justify-center rounded-full text-[8px]">{allActiveOrders.length}</span>}
+          </button>
         </div>
 
         {rightTab === 'gestion' ? (
-            <>
-                <div className="p-4 border-b bg-slate-50">
-                    {selectedTable && (
-                      <div className="mb-4 bg-brand-600 text-white rounded-2xl p-4 shadow-lg flex items-center justify-between animate-in slide-in-from-top-4">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
-                            {(selectedTable.mergedWith?.length || 0) > 0 ? <Link size={18}/> : <Grid3X3 size={18} />}
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">
-                                {(selectedTable.mergedWith?.length || 0) > 0 ? 'Grupo de Sillas' : 'Silla Seleccionada'}
-                            </p>
-                            <p className="text-sm font-black uppercase tracking-tighter">
-                                {selectedTable.name} {selectedSeat && `- SILLA ${selectedSeat}`}
-                                {(selectedTable.mergedWith?.length || 0) > 0 && (
-                                    <span className="ml-2 text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
-                                        CAP: {selectedTable.seats + (selectedTable.mergedWith?.length || 0) * 4} pers
-                                    </span>
-                                )}
-                            </p>
-                          </div>
+          <>
+            <div className="p-4 border-b bg-slate-50">
+              {selectedTable && (
+                <div className="mb-4 bg-brand-600 text-white rounded-2xl p-4 shadow-lg flex items-center justify-between animate-in slide-in-from-top-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
+                      {(selectedTable.mergedWith?.length || 0) > 0 ? <Link size={18}/> : <Grid3X3 size={18} />}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-80">
+                        {(selectedTable.mergedWith?.length || 0) > 0 ? 'Grupo de Sillas' : 'Silla Seleccionada'}
+                      </p>
+                      <p className="text-sm font-black uppercase tracking-tighter">
+                        {selectedTable.name} {selectedSeat && `- SILLA ${selectedSeat}`}
+                        {(selectedTable.mergedWith?.length || 0) > 0 && (
+                          <span className="ml-2 text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
+                            CAP: {selectedTable.seats + (selectedTable.mergedWith?.length || 0) * 4} pers
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => onSelectTable(undefined)} className="hover:bg-white/10 p-2 rounded-xl transition-all"><X size={18} /></button>
+                </div>
+              )}
+
+              <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-blue-50 p-1.5 rounded-lg text-blue-600"><User size={14}/></div>
+                    <div><p className="text-[9px] font-black text-slate-800 uppercase leading-none">{activeCustomer.name}</p></div>
+                  </div>
+                  <div className="flex gap-1">
+                    {activeCustomer.id !== 'consumidor-final' && (
+                      <button onClick={() => { setSelectedCustomerState(generalCustomer); setRedeemedPoints(0); }} className="text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all" title="Cambiar Cliente"><X size={14}/></button>
+                    )}
+                    <button onClick={() => setIsCustModalOpen(true)} className="text-brand-600 hover:bg-brand p-1 rounded-lg transition-all"><Edit2 size={14}/></button>
+                  </div>
+                </div>
+
+                {orderType === OrderType.DELIVERY && (
+                  <div className="mt-2 relative">
+                    <input
+                      className="w-full bg-slate-50 border-none rounded-xl p-2 text-[9px] font-bold outline-none focus:ring-1 focus:ring-brand-500"
+                      placeholder="Dirección de entrega..."
+                      value={tempAddress}
+                      onChange={e => setTempAddress(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {activeCustomer.id !== 'consumidor-final' && loyaltyConfig.enabled && (
+                  <div className="mt-2 p-2 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Star size={12} className="text-emerald-600" fill="currentColor"/><span className="text-[9px] font-black text-emerald-800 uppercase">{activeCustomer.points} Pts</span>
+                    </div>
+                    <button onClick={handleRedeemPoints} className="px-2 py-1 bg-emerald-600 text-white text-[8px] font-black uppercase rounded-lg shadow-sm hover:bg-emerald-700 transition-all">Redimir</button>
+                  </div>
+                )}
+
+                {activeCustomer.id === 'consumidor-final' && (
+                  <div className="relative group mt-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300" size={16} strokeWidth={2.2}/>
+                    <input type="text" placeholder="Vincular cliente..." className="w-full pl-7 pr-3 py-1.5 bg-slate-50 border-none rounded-xl text-[9px] font-bold focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-[9px] placeholder:text-slate-400" value={custSearch} onChange={e => { setCustSearch(e.target.value); setShowCustDropdown(true); }} />
+                    {showCustDropdown && filteredCustomers.length > 0 && (
+                      <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-2xl mt-1 border border-slate-100 overflow-hidden z-50">
+                        {filteredCustomers.map(c => (
+                          <button key={c.id} onClick={() => { setSelectedCustomerState(c); setShowCustDropdown(false); setRedeemedPoints(0); }} className="w-full p-2.5 text-left hover:bg-brand-50 border-b border-slate-50 last:border-0 flex justify-between items-center transition-all">
+                            <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-800">{c.name}</span></div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── CARRITO ── */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar space-y-3">
+              {focusedOrders.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Producción Activa</span>
+                  {(Object.entries(pendingByArea) as [string, CartItem[]][]).map(([area, items]) => {
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={area} className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          {area === ProductionArea.KITCHEN ? <CalendarPlus2 size={10} className="text-brand-500"/> : area === ProductionArea.GRILL ? <Flame size={10} className="text-orange-500"/> : <Beer size={10} className="text-blue-500"/>}
+                          <span className="text-[8px] font-black text-slate-600 uppercase">{area}</span>
                         </div>
-                        <button onClick={() => onSelectTable(undefined)} className="hover:bg-white/10 p-2 rounded-xl transition-all"><X size={18} /></button>
+                        <div className="space-y-1">
+                          {items.map((it, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-[9px] font-bold text-slate-500">
+                              <span className="uppercase">{it.quantity}x {it.product.name}</span>
+                              <span className="text-brand-600"><Clock size={8} className="inline mr-0.5"/> {it.status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {cart.length === 0 && focusedOrders.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center py-16 text-slate-300 opacity-30">
+                  <UtensilsCrossed size={48} className="mb-3" /><p className="font-black tracking-widest text-[10px]">Sin productos</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map(item => (
+                    <div key={item.cartId} className="flex gap-3 items-start animate-in slide-in-from-right-2">
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-black text-slate-800 uppercase text-[9px] leading-tight truncate">{item.product.name}</h5>
+                        {/* ── IVA badge por línea de carrito ── */}
+                        <div className="mt-0.5 mb-1">
+                          {getTaxBadge(item)}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center bg-slate-100 rounded-lg">
+                            <button onClick={() => setCart(cart.map(i => i.cartId === item.cartId ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i))} className="p-1 hover:text-brand-600 transition-colors"><Minus size={10}/></button>
+                            <span className="text-[10px] font-black w-5 text-center tabular-nums">{item.quantity}</span>
+                            <button onClick={() => setCart(cart.map(i => i.cartId === item.cartId ? { ...i, quantity: i.quantity + 1 } : i))} className="p-1 hover:text-brand-600 transition-colors"><Plus size={10}/></button>
+                          </div>
+                          <span className="text-[10px] font-black text-brand-600 tabular-nums">{formatCOP(getEffectivePrice(item.product) * item.quantity)}</span>
+                        </div>
+                      </div>
+                      <button onClick={() => setCart(cart.filter(i => i.cartId !== item.cartId))} className="text-slate-200 hover:text-red-500 transition-colors mt-0.5"><X size={16}/></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── TOTALES ── */}
+            <div className="p-4 bg-slate-900 text-white shadow-inner space-y-3">
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                  <span>Subtotal</span><span className="tabular-nums">{formatCOP(currentSubtotal)}</span>
+                </div>
+                {/* ── IVA siempre visible (aunque sea 0) ── */}
+                <div className="flex justify-between items-center text-[8px] font-bold text-blue-400 uppercase tracking-widest">
+                  <span>IVA ({(taxRate * 100).toFixed(0)}%)</span>
+                  <span className="tabular-nums">{formatCOP(currentIva)}</span>
+                </div>
+                {/* ── IMPOCONSUMO solo si hay ── */}
+                <div className="flex justify-between text-[9px] font-bold text-orange-500 uppercase">
+                    <span>Impoconsumo ({(impoconsumoRate * 100).toFixed(0)}%)</span><span>{formatCOP(currentImpoc)}</span>
+                </div>
+                {loyaltyDiscount > 0 && (
+                  <div className="flex justify-between items-center text-[8px] font-bold text-emerald-400 uppercase tracking-widest">
+                    <span>Dcto Puntos ({redeemedPoints})</span>
+                    <span className="tabular-nums">-{formatCOP(loyaltyDiscount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1 border-t border-white/10 mt-1">
+                  <span className="text-[10px] font-black text-brand-500 uppercase tracking-widest">Total</span>
+                  <span className="text-2xl font-black tabular-nums">{formatCOP(currentTotal)}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {selectedMonitorOrder && (
+                  <button
+                    onClick={handleClearAndNewSale}
+                    className="w-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 hover:text-red-300 py-3 rounded-xl font-black uppercase text-[8px] tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                  >
+                    <X size={14}/> Cancelar y nueva venta
+                  </button>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={handleSendToKitchen} disabled={cart.length === 0} className="bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-black uppercase text-[8px] tracking-widest disabled:opacity-20 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"><Send size={14}/> Comanda</button>
+                  <button onClick={() => setIsPaymentModalOpen(true)} disabled={!selectedMonitorOrder} className="bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-black uppercase text-[8px] tracking-widest disabled:opacity-20 flex items-center justify-center gap-1.5 shadow-xl active:scale-95 transition-all">
+                    <Star size={14} fill="currentColor"/> Cobrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
+            <div className="p-4 border-b bg-white">
+              <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1 flex items-center gap-2"><BellRing size={14} className="text-brand-600"/> Monitor de Órdenes</h3>
+              <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Gestión de estados y despachos</p>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+              {allActiveOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 opacity-20"><History size={48} className="text-slate-400 mb-2"/><p className="text-[10px] font-black uppercase tracking-widest">Sin órdenes activas</p></div>
+              ) : allActiveOrders.map(o => {
+                const isDelivery = o.type === OrderType.DELIVERY;
+                const isDineIn = o.type === OrderType.DINE_IN;
+                const isTakeaway = o.type === OrderType.TAKEAWAY;
+                const isSelected = selectedMonitorOrder?.id === o.id;
+                return (
+                  <div key={o.id} className={`bg-white p-4 rounded-[2rem] border-2 shadow-sm space-y-3 animate-in fade-in transition-all ${isSelected ? 'border-brand-500 shadow-brand-100' : 'border-slate-50'}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-slate-800">
+                          {o.tableId ? `UBICACIÓN: ${o.tableId.replace(/[^a-zA-Z0-9 ]/g, ' ').toUpperCase()}` : `ID: #${o.id.slice(-6).toUpperCase()}`}
+                        </span>
+                        <div className="mt-1 flex gap-1">
+                          {isDineIn && <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[7px] font-black uppercase">LOCAL</span>}
+                          {isTakeaway && <span className="bg-slate-900 text-white px-2 py-0.5 rounded text-[7px] font-black uppercase">LLEVAR</span>}
+                          {isDelivery && <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-[7px] font-black uppercase">DOMICILIO</span>}
+                          {isSelected && <span className="bg-brand-600 text-white px-2 py-0.5 rounded text-[7px] font-black uppercase">CARGADA</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleLoadOrderFromMonitor(o)}
+                        disabled={o.status !== OrderStatus.READY}
+                        className={`p-2 rounded-xl transition-all ${o.status === OrderStatus.READY ? 'text-brand-600 bg-brand-50 hover:bg-brand-100' : 'text-slate-400 bg-slate-100 cursor-not-allowed'}`}
+                        title={o.status === OrderStatus.READY ? 'Cobrar orden' : `No disponible (estado: ${o.status})`}
+                      >
+                        <Edit2 size={14}/>
+                      </button>
+                    </div>
+
+                    {isDelivery && (
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Dirección de Entrega</span>
+                          {editingAddressId === o.id ? (
+                            <button onClick={() => handleSaveAddressUpdate(o.id)} className="text-emerald-600 text-[8px] font-black uppercase flex items-center gap-1"><Save size={10}/> Guardar</button>
+                          ) : (
+                            <button onClick={() => { setEditingAddressId(o.id); setTempAddress(o.deliveryAddress || ''); }} className="text-blue-600 text-[8px] font-black uppercase">Editar</button>
+                          )}
+                        </div>
+                        {editingAddressId === o.id ? (
+                          <input autoFocus className="w-full bg-white border-none rounded-lg p-2 text-[9px] font-bold focus:ring-1 focus:ring-brand-500" value={tempAddress} onChange={e => setTempAddress(e.target.value)}/>
+                        ) : (
+                          <p className="text-[10px] font-bold text-slate-700 uppercase leading-tight">{o.deliveryAddress || 'Dirección no especificada'}</p>
+                        )}
                       </div>
                     )}
 
-                    {/*
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                        <button onClick={() => { setOrderType(OrderType.TAKEAWAY); setSelectedOrderId(null); onSelectTable(undefined); }} className={`py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-1.5 ${orderType === OrderType.TAKEAWAY ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-500 border-slate-200'}`}><ShoppingBag size={12}/> Llevar</button>
-                        <button onClick={() => { setOrderType(OrderType.DELIVERY); setSelectedOrderId(null); onSelectTable(undefined); }} className={`py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-1.5 ${orderType === OrderType.DELIVERY ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-500 border-slate-200'}`}><MapPin size={12}/> Domicilio</button>
-                    </div>*/}
-
-                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                        <div className="flex justify-between items-center mb-1">
-                            <div className="flex items-center gap-2">
-                                <div className="bg-blue-50 p-1.5 rounded-lg text-blue-600"><User size={14}/></div>
-                                <div><p className="text-[9px] font-black text-slate-800 uppercase leading-none">{activeCustomer.name}</p></div>
-                            </div>
-                            <div className="flex gap-1">
-                                {activeCustomer.id !== 'consumidor-final' && (
-                                    <button onClick={() => { setSelectedCustomerState(generalCustomer); setRedeemedPoints(0); }} className="text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all" title="Cambiar Cliente"><X size={14}/></button>
-                                )}
-                                <button onClick={() => setIsCustModalOpen(true)} className="text-brand-600 hover:bg-brand p-1 rounded-lg transition-all"><Edit2 size={14}/></button>
-                            </div>
-                        </div>
-
-                        {orderType === OrderType.DELIVERY && (
-                            <div className="mt-2 relative">
-                                <input 
-                                    className="w-full bg-slate-50 border-none rounded-xl p-2 text-[9px] font-bold outline-none focus:ring-1 focus:ring-brand-500" 
-                                    placeholder="Dirección de entrega..." 
-                                    value={tempAddress} 
-                                    onChange={e => setTempAddress(e.target.value)} 
-                                />
-                            </div>
-                        )}
-                        
-                        {activeCustomer.id !== 'consumidor-final' && loyaltyConfig.enabled && (
-                            <div className="mt-2 p-2 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <Star size={12} className="text-emerald-600" fill="currentColor"/><span className="text-[9px] font-black text-emerald-800 uppercase">{activeCustomer.points} Pts</span>
-                                </div>
-                                <button onClick={handleRedeemPoints} className="px-2 py-1 bg-emerald-600 text-white text-[8px] font-black uppercase rounded-lg shadow-sm hover:bg-emerald-700 transition-all">Redimir</button>
-                            </div>
-                        )}
-
-                        {activeCustomer.id === 'consumidor-final' && (
-                            <div className="relative group mt-1">
-                                <Search
-                                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300"
-                                    size={16}
-                                    strokeWidth={2.2}
-                                />
-                                <input type="text" placeholder="Vincular cliente..." className="w-full pl-7 pr-3 py-1.5 bg-slate-50 border-none rounded-xl text-[9px] font-bold focus:ring-1 focus:ring-brand-500 transition-all placeholder:text-[9px] placeholder:text-slate-400" value={custSearch} onChange={e => { setCustSearch(e.target.value); setShowCustDropdown(true); }} />
-                                {showCustDropdown && filteredCustomers.length > 0 && (
-                                    <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-2xl mt-1 border border-slate-100 overflow-hidden z-50">
-                                        {filteredCustomers.map(c => (
-                                            <button key={c.id} onClick={() => { setSelectedCustomerState(c); setShowCustDropdown(false); setRedeemedPoints(0); }} className="w-full p-2.5 text-left hover:bg-brand-50 border-b border-slate-50 last:border-0 flex justify-between items-center transition-all">
-                                                <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-800">{c.name}</span></div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                    <div className="flex justify-between items-end">
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-slate-400 uppercase">Items: {o.items.length}</span>
+                        <span className="text-sm font-black text-brand-600">{formatCOP(o.total)}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${o.status === OrderStatus.READY ? 'bg-emerald-500 text-white' : 'bg-orange-400 text-white'}`}>
+                          {o.status}
+                        </span>
+                      </div>
                     </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar space-y-3">
-                    {focusedOrders.length > 0 && (
-                        <div className="space-y-2 mb-4">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Producción Activa</span>
-                            {(Object.entries(pendingByArea) as [string, CartItem[]][]).map(([area, items]) => {
-                                if (items.length === 0) return null;
-                                return (
-                                    <div key={area} className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                        <div className="flex items-center gap-1.5 mb-1.5">
-                                            {area === ProductionArea.KITCHEN ? <CalendarPlus2 size={10} className="text-brand-500"/> : area === ProductionArea.GRILL ? <Flame size={10} className="text-orange-500"/> : <Beer size={10} className="text-blue-500"/>}
-                                            <span className="text-[8px] font-black text-slate-600 uppercase">{area}</span>
-                                        </div>
-                                        <div className="space-y-1">
-                                            {items.map((it, idx) => (
-                                                <div key={idx} className="flex justify-between items-center text-[9px] font-bold text-slate-500">
-                                                    <span className="uppercase">{it.quantity}x {it.product.name}</span>
-                                                    <span className="text-brand-600">
-                                                        <Clock size={8} className="inline mr-0.5"/> {it.status}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                    
-                    {cart.length === 0 && focusedOrders.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center py-16 text-slate-300 opacity-30">
-                            <UtensilsCrossed size={48} className="mb-3" /><p className="font-black tracking-widest text-[10px]">Sin productos</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {cart.map(item => (
-                                <div key={item.cartId} className="flex gap-3 items-center animate-in slide-in-from-right-2">
-                                    <div className="flex-1 min-w-0">
-                                        <h5 className="font-black text-slate-800 uppercase text-[9px] leading-tight truncate">{item.product.name}</h5>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <div className="flex items-center bg-slate-100 rounded-lg"><button onClick={() => setCart(cart.map(i => i.cartId === item.cartId ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i))} className="p-1 hover:text-brand-600 transition-colors"><Minus size={10}/></button><span className="text-[10px] font-black w-5 text-center tabular-nums">{item.quantity}</span><button onClick={() => setCart(cart.map(i => i.cartId === item.cartId ? { ...i, quantity: i.quantity + 1 } : i))} className="p-1 hover:text-brand-600 transition-colors"><Plus size={10}/></button></div>
-                                            <span className="text-[10px] font-black text-brand-600 tabular-nums">{formatCOP(getEffectivePrice(item.product) * item.quantity)}</span>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setCart(cart.filter(i => i.cartId !== item.cartId))} className="text-slate-200 hover:text-red-500 transition-colors"><X size={16}/></button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className="p-4 bg-slate-900 text-white shadow-inner space-y-3">
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-widest"><span>Subtotal</span><span className="tabular-nums">{formatCOP(currentSubtotal)}</span></div>
-                        <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-widest"><span>Iva</span><span className="tabular-nums">{formatCOP(currentIva)}</span></div>
-                        {currentImpoc > 0 && <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 uppercase tracking-widest"><span>Impoconsumo</span><span className="tabular-nums">{formatCOP(currentImpoc)}</span></div>}
-                        {loyaltyDiscount > 0 && <div className="flex justify-between items-center text-[8px] font-bold text-emerald-400 uppercase tracking-widest"><span>Dcto Puntos ({redeemedPoints})</span><span className="tabular-nums">-{formatCOP(loyaltyDiscount)}</span></div>}
-                        <div className="flex justify-between items-center pt-1 border-t border-white/10 mt-1"><span className="text-[10px] font-black text-brand-500 uppercase tracking-widest">Total</span><span className="text-2xl font-black tabular-nums">{formatCOP(currentTotal)}</span></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={handleSendToKitchen} disabled={cart.length === 0} className="bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-black uppercase text-[8px] tracking-widest disabled:opacity-20 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all"><Send size={14}/> Comanda</button>
-                        <button onClick={() => setIsPaymentModalOpen(true)} disabled={!selectedMonitorOrder} className="bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-black uppercase text-[8px] tracking-widest disabled:opacity-20 flex items-center justify-center gap-1.5 shadow-xl active:scale-95 transition-all">
-                            <Star size={14} fill="currentColor"/> Cobrar
-                        </button>
-                    </div>
-                </div>
-            </>
-        ) : (
-            <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
-                <div className="p-4 border-b bg-white">
-                    <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1 flex items-center gap-2"><BellRing size={14} className="text-brand-600"/> Monitor de Órdenes</h3>
-                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Gestión de estados y despachos</p>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                    {allActiveOrders.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-20"><History size={48} className="text-slate-400 mb-2"/><p className="text-[10px] font-black uppercase tracking-widest">Sin órdenes activas</p></div>
-                    ) : allActiveOrders.map(o => {
-                        const isDelivery = o.type === OrderType.DELIVERY;
-                        const isDineIn = o.type === OrderType.DINE_IN;
-                        const isTakeaway = o.type === OrderType.TAKEAWAY;
-
-                        return (
-                            <div key={o.id} className="bg-white p-4 rounded-[2rem] border-2 border-slate-50 shadow-sm space-y-3 animate-in fade-in">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-black uppercase text-slate-800">
-                                            {o.tableId ? `UBICACIÓN: ${o.tableId.replace(/[^a-zA-Z0-9 ]/g, ' ').toUpperCase()}` : `ID: #${o.id.slice(-6).toUpperCase()}`}
-                                        </span>
-                                        <div className="mt-1 flex gap-1">
-                                            {isDineIn && <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[7px] font-black uppercase">LOCAL</span>}
-                                            {isTakeaway && <span className="bg-slate-900 text-white px-2 py-0.5 rounded text-[7px] font-black uppercase">LLEVAR</span>}
-                                            {isDelivery && <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-[7px] font-black uppercase">DOMICILIO</span>}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => handleLoadOrderFromMonitor(o)}
-                                        disabled={o.status !== OrderStatus.READY} // SOLO READY puede seleccionarse
-                                        className={`p-2 rounded-xl transition-all ${
-                                            o.status === OrderStatus.READY
-                                            ? 'text-brand-600 bg-brand-50 hover:bg-brand-100'
-                                            : 'text-slate-400 bg-slate-100 cursor-not-allowed'
-                                        }`}
-                                        title={
-                                            o.status === OrderStatus.READY 
-                                            ? 'Editar orden' 
-                                            : `No disponible (estado: ${o.status})`
-                                        }
-                                        >
-                                        <Edit2 size={14}/>
-                                        </button>
-                                </div>
-
-                                {isDelivery && (
-                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Dirección de Entrega</span>
-                                            {editingAddressId === o.id ? (
-                                                <button onClick={() => handleSaveAddressUpdate(o.id)} className="text-emerald-600 text-[8px] font-black uppercase flex items-center gap-1"><Save size={10}/> Guardar</button>
-                                            ) : (
-                                                <button onClick={() => { setEditingAddressId(o.id); setTempAddress(o.deliveryAddress || ''); }} className="text-blue-600 text-[8px] font-black uppercase">Editar</button>
-                                            )}
-                                        </div>
-                                        {editingAddressId === o.id ? (
-                                            <input 
-                                                autoFocus
-                                                className="w-full bg-white border-none rounded-lg p-2 text-[9px] font-bold focus:ring-1 focus:ring-brand-500" 
-                                                value={tempAddress}
-                                                onChange={e => setTempAddress(e.target.value)}
-                                            />
-                                        ) : (
-                                            <p className="text-[10px] font-bold text-slate-700 uppercase leading-tight">{o.deliveryAddress || 'Dirección no especificada'}</p>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between items-end">
-                                    <div className="flex flex-col">
-                                        <span className="text-[8px] font-black text-slate-400 uppercase">Items: {o.items.length}</span>
-                                        <span className="text-sm font-black text-brand-600">{formatCOP(o.total)}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${o.status === OrderStatus.READY ? 'bg-emerald-500 text-white' : 'bg-orange-400 text-white'}`}>
-                                            {o.status}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
         )}
       </div>
 
+      {/* ── MODAL PAGO ── */}
       {isPaymentModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[1000] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[3rem] w-full max-w-4xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col md:flex-row max-h-[90vh]">
-                  <div className="flex-1 p-10 border-r border-slate-100 overflow-y-auto">
-                      <div className="flex justify-between items-center mb-10">
-                          <div className="flex flex-col">
-                              <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-800 flex items-center gap-3">Gestión de Pago</h3>
-                              <p className="text-xs font-black text-brand-600 uppercase tracking-widest mt-1">Total a cobrar: <span className="text-xl text-slate-900 ml-2">{formatCOP(currentTotal)}</span></p>
-                          </div>
-                          <button onClick={() => { setIsPaymentModalOpen(false); setShowCashEntry(false); }} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-slate-800 transition-all"><X size={24}/></button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                          <button onClick={() => { setShowCashEntry(true); setReceivedAmount(''); }} className={`h-40 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all ${showCashEntry ? 'bg-emerald-600 text-white shadow-2xl' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
-                              <Banknote size={44} /><span className="text-xs font-black uppercase tracking-widest">Efectivo</span>
-                          </button>
-                          <button onClick={() => handleFinalizePayment(PaymentMethod.CARD)} className="h-40 bg-slate-50 rounded-[2.5rem] text-slate-500 hover:bg-blue-600 hover:text-white transition-all flex flex-col items-center justify-center gap-4 active:scale-95">
-                              <CreditCard size={44} /><span className="text-xs font-black uppercase tracking-widest">Datafono</span>
-                          </button>
-                          <button onClick={() => handleFinalizePayment(PaymentMethod.QR)} className="h-40 bg-slate-50 rounded-[2.5rem] text-slate-500 hover:bg-purple-600 hover:text-white transition-all flex flex-col items-center justify-center gap-4 active:scale-95">
-                              <QrCode size={44} /><span className="text-xs font-black uppercase tracking-widest">QR Transfer</span>
-                          </button>
-                      </div>
-
-                      {showCashEntry && (
-                          <div className="mt-10 p-8 bg-emerald-50 rounded-[2.5rem] border-2 border-emerald-100 animate-in slide-in-from-top-4 flex flex-col sm:flex-row items-center gap-8">
-                               <div className="flex-1 w-full text-center sm:text-left">
-                                   <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3">Monto Recibido</label>
-                                   <input autoFocus type="number" className="w-full h-28 bg-slate-50 rounded-2xl px-6 !text-5xl leading-none font-black text-slate-800 text-center outline-none focus:ring-4 focus:ring-emerald-200 text-center" value={receivedAmount} onChange={e => setReceivedAmount(e.target.value)} placeholder="0" />
-                               </div>
-                               <div className="flex flex-col items-center sm:items-end gap-2">
-                                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Vueltas</p>
-                                   <h4 className="text-5xl font-black text-slate-800 tracking-tighter tabular-nums">{formatCOP(cashChange)}</h4>
-                                   <button onClick={() => handleFinalizePayment(PaymentMethod.CASH)} className="mt-4 bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95">Confirmar</button>
-                               </div>
-                          </div>
-                      )}
-                  </div>
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[1000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3rem] w-full max-w-4xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col md:flex-row max-h-[90vh]">
+            <div className="flex-1 p-10 border-r border-slate-100 overflow-y-auto">
+              <div className="flex justify-between items-center mb-10">
+                <div className="flex flex-col">
+                  <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-800">Gestión de Pago</h3>
+                  <p className="text-xs font-black text-brand-600 uppercase tracking-widest mt-1">Total a cobrar: <span className="text-xl text-slate-900 ml-2">{formatCOP(currentTotal)}</span></p>
+                </div>
+                <button onClick={() => { setIsPaymentModalOpen(false); setShowCashEntry(false); }} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-slate-800 transition-all"><X size={24}/></button>
               </div>
+
+              {/* ── Desglose impuestos en modal de pago ── */}
+              <div className="mb-8 bg-slate-50 rounded-2xl p-4 space-y-1 border border-slate-100">
+                <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase">
+                  <span>Subtotal</span><span>{formatCOP(currentSubtotal)}</span>
+                </div>
+                <div className="flex justify-between text-[9px] font-bold text-blue-500 uppercase">
+                  <span>IVA ({(taxRate * 100).toFixed(0)}%)</span><span>{formatCOP(currentIva)}</span>
+                </div>
+                {currentImpoc > 0 && (
+                  <div className="flex justify-between text-[9px] font-bold text-orange-500 uppercase">
+                    <span>Impoconsumo ({(impoconsumoRate * 100).toFixed(0)}%)</span><span>{formatCOP(currentImpoc)}</span>
+                  </div>
+                )}
+                {loyaltyDiscount > 0 && (
+                  <div className="flex justify-between text-[9px] font-bold text-emerald-500 uppercase">
+                    <span>Dcto Puntos</span><span>-{formatCOP(loyaltyDiscount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-black text-slate-800 uppercase pt-1 border-t border-slate-200 mt-1">
+                  <span>Total</span><span>{formatCOP(currentTotal)}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <button onClick={() => { setShowCashEntry(true); setReceivedAmount(''); }} className={`h-40 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 transition-all ${showCashEntry ? 'bg-emerald-600 text-white shadow-2xl' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                  <Banknote size={44} /><span className="text-xs font-black uppercase tracking-widest">Efectivo</span>
+                </button>
+                <button onClick={() => handleFinalizePayment(PaymentMethod.CARD)} className="h-40 bg-slate-50 rounded-[2.5rem] text-slate-500 hover:bg-blue-600 hover:text-white transition-all flex flex-col items-center justify-center gap-4 active:scale-95">
+                  <CreditCard size={44} /><span className="text-xs font-black uppercase tracking-widest">Datafono</span>
+                </button>
+                <button onClick={() => handleFinalizePayment(PaymentMethod.QR)} className="h-40 bg-slate-50 rounded-[2.5rem] text-slate-500 hover:bg-purple-600 hover:text-white transition-all flex flex-col items-center justify-center gap-4 active:scale-95">
+                  <QrCode size={44} /><span className="text-xs font-black uppercase tracking-widest">QR Transfer</span>
+                </button>
+              </div>
+
+              {showCashEntry && (
+                <div className="mt-10 p-8 bg-emerald-50 rounded-[2.5rem] border-2 border-emerald-100 animate-in slide-in-from-top-4 flex flex-col sm:flex-row items-center gap-8">
+                  <div className="flex-1 w-full text-center sm:text-left">
+                    <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3">Monto Recibido</label>
+                    <input autoFocus type="number" className="w-full h-28 bg-slate-50 rounded-2xl px-6 !text-5xl leading-none font-black text-slate-800 text-center outline-none focus:ring-4 focus:ring-emerald-200" value={receivedAmount} onChange={e => setReceivedAmount(e.target.value)} placeholder="0" />
+                  </div>
+                  <div className="flex flex-col items-center sm:items-end gap-2">
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Vueltas</p>
+                    <h4 className="text-5xl font-black text-slate-800 tracking-tighter tabular-nums">{formatCOP(cashChange)}</h4>
+                    <button onClick={() => handleFinalizePayment(PaymentMethod.CASH)} className="mt-4 bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95">Confirmar</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+        </div>
       )}
     </div>
   );
