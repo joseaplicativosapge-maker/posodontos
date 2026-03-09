@@ -319,7 +319,7 @@ export const WarehouseView: React.FC<WarehouseViewProps> = ({
                               <div className={`space-y-6 ${isDirectSale ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
                                   <div className="relative group">
                                       <div className="h-32 w-full bg-white border-2 border-dashed border-slate-200 rounded-3xl overflow-hidden flex flex-col items-center justify-center cursor-pointer hover:border-brand-300 transition-all" onClick={() => fileInputRef.current?.click()}>
-                                          {saleImageUrl ? <img src={saleImageUrl} className="w-full h-full object-cover" /> : <><ImageIcon size={32} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Foto Producto</span></>}
+                                          {saleImageUrl ? <img src={saleImageUrl || `${import.meta.env.VITE_URL_BASE}/assets/img/default.png`} className="w-full h-full object-cover" /> : <><ImageIcon size={32} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Foto Producto</span></>}
                                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                                       </div>
                                   </div>

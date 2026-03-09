@@ -189,7 +189,7 @@ export const PublicMenu: React.FC<PublicMenuProps> = ({ products, branch }) => {
               filteredProducts.map(product => (
                   <div key={product.id} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden active:scale-[0.98] transition-all flex flex-col sm:flex-row animate-in slide-in-from-bottom-4 duration-500">
                       <div className="w-full sm:w-40 h-48 sm:h-auto bg-slate-100 flex-shrink-0 relative">
-                          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                          <img src={product.imageUrl || `${import.meta.env.VITE_URL_BASE}/assets/img/default.png`} alt={product.name} className="w-full h-full object-cover" />
                           {product.isCombo && (
                               <div className="absolute top-3 left-3 bg-brand-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg uppercase tracking-widest">
                                   Combo
