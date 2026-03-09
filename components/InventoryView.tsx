@@ -423,7 +423,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <div key={item.id} className={`bg-white rounded-[2.5rem] shadow-sm border overflow-hidden hover:shadow-xl transition-all group flex flex-col ${hasPromo ? 'border-emerald-200' : 'border-slate-100 hover:border-brand-200'}`}>
                             <div className="h-44 overflow-hidden relative bg-slate-50 flex items-center justify-center">
                                 {linkedProduct?.imageUrl ? (
-                                    <img src={linkedProduct.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                    <img src={linkedProduct.imageUrl || `${import.meta.env.VITE_URL_BASE}/assets/img/default.png`} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                 ) : (
                                     <div className="flex flex-col items-center justify-center text-slate-200 group-hover:text-brand-200 transition-colors">
                                         <Package size={64} />
