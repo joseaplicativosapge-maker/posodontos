@@ -32,6 +32,7 @@ const S_CFG: Record<SessionStatus, { label: string; dot: string; bg: string }> =
   [SessionStatus.REALIZADA]:    { label: 'Realizada',    dot: 'bg-emerald-500', bg: 'bg-emerald-100' },
   [SessionStatus.CANCELADA]:    { label: 'Cancelada',    dot: 'bg-red-500',     bg: 'bg-red-100'     },
   [SessionStatus.REPROGRAMADA]: { label: 'Reprogramada', dot: 'bg-yellow-500',  bg: 'bg-yellow-100'  },
+  [SessionStatus.VENCIDA]: { label: 'Vencida', dot: 'bg-red-700', bg: 'bg-red-200' },
 };
 
 const newSes = (num: number): TreatmentSession => ({
@@ -573,9 +574,24 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                     ) : (
                       <div className="space-y-2">
                         {t.sessions.map((ses, idx) => {
-                          const sc = S_CFG[ses.status];
-                          const canSchedule = ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA;
+                            
+                          const today = new Date();
+                          today.setHours(0,0,0,0);
+                          let effectiveStatus = ses.status;
+
+                          if (ses.date && ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA) {
+                            const sessionDate = new Date(ses.date);
+                            sessionDate.setHours(0,0,0,0);
+
+                            if (sessionDate < today) {
+                                effectiveStatus = SessionStatus.VENCIDA;
+                            }
+                          }
+
+                          const sc = S_CFG[effectiveStatus];
+                          const canSchedule = effectiveStatus !== SessionStatus.REALIZADA && effectiveStatus !== SessionStatus.CANCELADA;
                           const hasDate = ses.isScheduled === true;
+
                           return (
                             <div key={ses.id} className="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-slate-100">
                               <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
