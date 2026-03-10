@@ -597,6 +597,8 @@ model TreatmentSession {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
+  isScheduled   Boolean?
+
   @@index([treatmentId])
   @@map("TreatmentSession")
 }

@@ -281,7 +281,6 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
 
   const displayed = useMemo(() => {
     const q = search.toLowerCase();
-    console.log(customers);
     return treatments.filter(t => {
       const cust = customers.find(c => c.id === t.customerId);
       const matchSearch =
@@ -392,7 +391,15 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
     if (!scheduleTarget) return;
     const t = scheduleTarget.treatment;
     const updatedSessions = t.sessions.map(s =>
-      s.id === sesId ? { ...s, date, time, status: SessionStatus.REPROGRAMADA } : s
+    s.id === sesId
+        ? {
+            ...s,
+            date,
+            time,
+            isScheduled: true,
+            status: s.date ? SessionStatus.REPROGRAMADA : SessionStatus.PROGRAMADA
+        }
+        : s
     );
     const now = new Date().toISOString();
     try {
@@ -568,7 +575,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                         {t.sessions.map((ses, idx) => {
                           const sc = S_CFG[ses.status];
                           const canSchedule = ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA;
-                          const hasDate = !!ses.date;
+                          const hasDate = ses.isScheduled === true;
                           return (
                             <div key={ses.id} className="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-slate-100">
                               <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">

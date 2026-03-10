@@ -774,7 +774,6 @@ const App: React.FC = () => {
             )}
             {currentView === 'treatments' && (
               <>
-                {console.log('🦷 customers:', customers)}
                 <TreatmentView
                   customers={customers}
                   products={branchContext.products ?? []}
