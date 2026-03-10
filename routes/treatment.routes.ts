@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /treatments?companyId=xxx&branchId=xxx
+// GET /treatments
 router.get('/', async (req, res) => {
   try {
     const { companyId, branchId } = req.query;
@@ -71,29 +71,30 @@ router.post('/', async (req, res) => {
 
     const treatment = await prisma.patientTreatment.create({
       data: {
-        id:       newId,
-        branch:   { connect: { id: branchId } },
+        id: newId,
+        branch: { connect: { id: branchId } },
         customer: { connect: { id: customerId } },
         ...(productId ? { product: { connect: { id: productId } } } : {}),
         name,
         doctor,
-        status:    status || 'PENDIENTE',
+        status: status || 'PENDIENTE',
         totalCost: Number(totalCost) || 0,
-        notes:     notes || '',
+        notes: notes || '',
       },
     });
 
     if (sessions?.length > 0) {
       await prisma.treatmentSession.createMany({
         data: sessions.map((ses: any) => ({
-          id:            ses.id || `ses-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          treatmentId:   newId,
+          id: ses.id || `ses-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          treatmentId: newId,
           sessionNumber: Number(ses.sessionNumber),
-          label:         ses.label || `Sesión ${ses.sessionNumber}`,
-          status:        ses.status || 'PROGRAMADA',
-          date:          ses.date || null,
-          time:          ses.time || null,
-          notes:         ses.notes || null,
+          label: ses.label || `Sesión ${ses.sessionNumber}`,
+          status: ses.status || 'PROGRAMADA',
+          date: ses.date || null,
+          time: ses.time || null,
+          notes: ses.notes || null,
+          isScheduled: ses.isScheduled ?? false, // ✅ CORREGIDO
         })),
       });
     }
@@ -115,35 +116,42 @@ router.put('/:id', async (req, res) => {
   } = req.body;
 
   try {
+    
+    // Eliminamos sesiones anteriores
     await prisma.treatmentSession.deleteMany({
       where: { treatmentId: req.params.id },
     });
 
+    // Actualizamos tratamiento
     const treatment = await prisma.patientTreatment.update({
       where: { id: req.params.id },
       data: {
-        customer:  { connect: { id: customerId } },
-        ...(productId ? { product: { connect: { id: productId } } } : { productId: null }),
+        customer: { connect: { id: customerId } },
+        ...(productId
+          ? { product: { connect: { id: productId } } }
+          : { productId: null }),
         name,
         doctor,
         status,
         totalCost: Number(totalCost) || 0,
-        notes:     notes || '',
+        notes: notes || '',
         updatedAt: new Date(),
       },
     });
 
+    // Re-creamos sesiones
     if (sessions?.length > 0) {
       await prisma.treatmentSession.createMany({
         data: sessions.map((ses: any) => ({
-          id:            ses.id || `ses-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          treatmentId:   req.params.id,
+          id: ses.id || `ses-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          treatmentId: req.params.id,
           sessionNumber: Number(ses.sessionNumber),
-          label:         ses.label || `Sesión ${ses.sessionNumber}`,
-          status:        ses.status || 'PROGRAMADA',
-          date:          ses.date || null,
-          time:          ses.time || null,
-          notes:         ses.notes || null,
+          label: ses.label || `Sesión ${ses.sessionNumber}`,
+          status: ses.status || 'PROGRAMADA',
+          date: ses.date || null,
+          time: ses.time || null,
+          notes: ses.notes || null,
+          isScheduled: ses.isScheduled ?? false, // ✅ CORREGIDO (LA CLAVE)
         })),
       });
     }

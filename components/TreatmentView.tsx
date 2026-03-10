@@ -40,7 +40,8 @@ const newSes = (num: number): TreatmentSession => ({
   sessionNumber: num,
   label: `Sesión ${num}`,
   status: SessionStatus.PROGRAMADA,
-});
+  isScheduled: false,
+});;
 
 type FormData = Omit<PatientTreatment, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -278,57 +279,62 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   }, [customers, custSearch]);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
-  const getTomorrow = () => {
-    const d = new Date();
-    d.setDate(d.getDate());
-    return d.toISOString().split('T')[0];
-  };
-  const displayed = useMemo(() => {
-    const q = search.toLowerCase();
-    return treatments.filter(t => {
-      const cust = customers.find(c => c.id === t.customerId);
-      const matchSearch =
-        t.name?.toLowerCase().includes(q) ||
-        t.doctor.toLowerCase().includes(q) ||
-        cust?.name.toLowerCase().includes(q);
-      const matchStatus = filterStatus === 'TODOS' || t.status === filterStatus;
-      return matchSearch && matchStatus;
-    });
-  }, [treatments, customers, search, filterStatus]);
+    const getTomorrow = () => {
+        const d = new Date();
+        d.setDate(d.getDate());
+        return d.toISOString().split('T')[0];
+    };
+    const displayed = useMemo(() => {
+        const q = search.toLowerCase();
+        return treatments.filter(t => {
+        const cust = customers.find(c => c.id === t.customerId);
+        const matchSearch =
+            t.name?.toLowerCase().includes(q) ||
+            t.doctor.toLowerCase().includes(q) ||
+            cust?.name.toLowerCase().includes(q);
+        const matchStatus = filterStatus === 'TODOS' || t.status === filterStatus;
+        return matchSearch && matchStatus;
+        });
+    }, [treatments, customers, search, filterStatus]);
 
-  const stats = useMemo(() => ({
-    total:      treatments.length,
-    progreso:   treatments.filter(t => t.status === TreatmentStatus.EN_PROGRESO).length,
-    completado: treatments.filter(t => t.status === TreatmentStatus.COMPLETADO).length,
-    pendiente:  treatments.filter(t => t.status === TreatmentStatus.PENDIENTE).length,
-  }), [treatments]);
+    const stats = useMemo(() => ({
+        total:      treatments.length,
+        progreso:   treatments.filter(t => t.status === TreatmentStatus.EN_PROGRESO).length,
+        completado: treatments.filter(t => t.status === TreatmentStatus.COMPLETADO).length,
+        pendiente:  treatments.filter(t => t.status === TreatmentStatus.PENDIENTE).length,
+    }), [treatments]);
 
-  const openNew = () => {
-    setEditingId(null);
-    setForm(blank(currentBranchId));
-    setCustSearch('');
-    setSelectedCustomerId('');
-    setShowDrop(false);
-    setIsOpen(true);
-  };
+    const openNew = () => {
+        setEditingId(null);
+        setForm(blank(currentBranchId));
+        setCustSearch('');
+        setSelectedCustomerId('');
+        setShowDrop(false);
+        setIsOpen(true);
+    };
 
-  const openEdit = (t: PatientTreatment) => {
-    setEditingId(t.id);
-    setForm({
-      customerId: t.customerId,
-      productId:  t.productId || '',
-      name:       t.name || '',
-      doctor:     t.doctor,
-      status:     t.status,
-      sessions:   t.sessions,
-      totalCost:  t.totalCost || 0,
-      notes:      t.notes || '',
-      branchId:   t.branchId,
-    });
-    setSelectedCustomerId(t.customerId);
-    setCustSearch(customers.find(c => c.id === t.customerId)?.name || '');
-    setShowDrop(false);
-    setIsOpen(true);
+    const openEdit = (t: PatientTreatment) => {
+        setEditingId(t.id);
+
+        setForm({
+            customerId: t.customerId,
+            productId:  t.productId || '',
+            name:       t.name || '',
+            doctor:     t.doctor,
+            status:     t.status,
+
+            // 🔥 NO TOCAR isScheduled
+            sessions: t.sessions.map(s => ({ ...s })),
+
+            totalCost: t.totalCost || 0,
+            notes:     t.notes || '',
+            branchId:  t.branchId,
+        });
+
+        setSelectedCustomerId(t.customerId);
+        setCustSearch(customers.find(c => c.id === t.customerId)?.name || '');
+        setShowDrop(false);
+        setIsOpen(true);
   };
 
   const selectCustomer = (c: Customer) => {
@@ -368,50 +374,89 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomerId)  { notify('Selecciona un paciente', 'warning'); return; }
-    if (!form.name.trim())    { notify('Ingresa el nombre del tratamiento', 'warning'); return; }
-    if (!form.doctor.trim())  { notify('Ingresa el profesional responsable', 'warning'); return; }
 
-    const payload: FormData = { ...form, customerId: selectedCustomerId };
-    setSaving(true);
-    const now = new Date().toISOString();
-    try {
-      if (editingId) {
-        await onUpdateTreatment({ ...payload, id: editingId, createdAt: now, updatedAt: now });
-        notify('Tratamiento actualizado', 'success');
-      } else {
-        await onAddTreatment({ ...payload, id: `trx-${Date.now()}`, createdAt: now, updatedAt: now });
-        notify('Tratamiento asignado', 'success');
-      }
-      setIsOpen(false);
-    } catch (err) {
-      notify('Error al guardar el tratamiento', 'error');
-    } finally {
-      setSaving(false);
+    if (!selectedCustomerId) {
+        notify('Selecciona un paciente', 'warning');
+        return;
     }
-  };
 
-  const handleScheduleSaved = async (sesId: string, date: string, time: string) => {
-    if (!scheduleTarget) return;
-    const t = scheduleTarget.treatment;
-    const updatedSessions = t.sessions.map(s =>
-    s.id === sesId
-        ? {
+    if (!form.name.trim()) {
+        notify('Ingresa el nombre del tratamiento', 'warning');
+        return;
+    }
+
+    if (!form.doctor.trim()) {
+        notify('Ingresa el profesional responsable', 'warning');
+        return;
+    }
+
+    const now = new Date().toISOString();
+
+    const payload = {
+        ...form,
+        customerId: selectedCustomerId,
+        sessions: form.sessions,
+    };
+
+    setSaving(true);
+
+    try {
+        if (editingId) {
+        await onUpdateTreatment({
+            ...payload,
+            id: editingId,
+            updatedAt: now,
+        });
+
+        notify('Tratamiento actualizado', 'success');
+        } else {
+        await onAddTreatment({
+            ...payload,
+            id: `trx-${Date.now()}`,
+            createdAt: now,
+            updatedAt: now,
+        });
+
+        notify('Tratamiento asignado', 'success');
+        }
+
+        setIsOpen(false);
+    } catch {
+        notify('Error al guardar el tratamiento', 'error');
+    } finally {
+        setSaving(false);
+    }
+    };
+
+    const handleScheduleSaved = async (sesId: string, date: string, time: string) => {
+        if (!scheduleTarget) return;
+
+        const { treatment } = scheduleTarget;
+
+        const updatedSessions = treatment.sessions.map(s => {
+            if (s.id !== sesId) return s;
+
+            return {
             ...s,
             date,
             time,
             isScheduled: true,
-            status: s.date ? SessionStatus.REPROGRAMADA : SessionStatus.PROGRAMADA
-        }
-        : s
-    );
-    const now = new Date().toISOString();
-    try {
-      await onUpdateTreatment({ ...t, sessions: updatedSessions, updatedAt: now });
-    } catch {
-      // reservación ya creada, error secundario
-    }
-  };
+            status:
+                s.date && s.date !== date
+                ? SessionStatus.REPROGRAMADA
+                : SessionStatus.PROGRAMADA,
+            };
+        });
+
+        const now = new Date().toISOString();
+
+        await onUpdateTreatment({
+            ...treatment,
+            sessions: updatedSessions,
+            createdAt: treatment.createdAt,
+            updatedAt: now,
+        });
+    };
 
   const getProgress = (t: PatientTreatment) => {
     if (!t.sessions.length) return 0;
@@ -593,7 +638,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
 
                           const sc = S_CFG[effectiveStatus];
                           const canSchedule = effectiveStatus !== SessionStatus.REALIZADA && effectiveStatus !== SessionStatus.CANCELADA;
-                          const hasDate = ses.isScheduled === true;
+                          const hasDate = !!ses.isScheduled;
 
                           return (
                             <div key={ses.id} className="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-slate-100">

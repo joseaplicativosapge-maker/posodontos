@@ -614,6 +614,7 @@ export interface TreatmentSession {
   time?: string;           // "HH:mm"
   status: SessionStatus;
   notes?: string;
+  isScheduled?: boolean;
 }
 
 export interface PatientTreatment {
