@@ -80,6 +80,12 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   const [notes,  setNotes]  = useState(session.notes || '');
   const [saving, setSaving] = useState(false);
 
+  const getTomorrow = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
   const handleSave = async () => {
     if (!date) { notify('Selecciona una fecha', 'warning'); return; }
     if (!time) { notify('Selecciona una hora',  'warning'); return; }
@@ -172,14 +178,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
               </label>
               <input
                 type="date"
-                min={isRescheduling && session.date
-                    ? (() => {
-                        const d = new Date(session.date);
-                        d.setDate(d.getDate() + 1);
-                        return d.toISOString().split('T')[0];
-                        })()
-                    : new Date().toISOString().split('T')[0]
-                }
+                min={getTomorrow()}
                 className="w-full bg-slate-50 rounded-2xl p-3 text-sm font-bold border-none outline-none focus:ring-2 focus:ring-teal-500"
                 value={date}
                 onChange={e => setDate(e.target.value)}
@@ -279,7 +278,11 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   }, [customers, custSearch]);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
-
+  const getTomorrow = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
   const displayed = useMemo(() => {
     const q = search.toLowerCase();
     return treatments.filter(t => {
@@ -802,7 +805,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                         </div>
                         <div>
                           <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">Fecha</label>
-                          <input type="date" className="w-full bg-slate-50 rounded-xl p-2.5 text-[11px] font-bold border-none outline-none" value={ses.date || ''} onChange={e => updateSes(idx, 'date', e.target.value)} />
+                          <input type="date" className="w-full bg-slate-50 rounded-xl p-2.5 text-[11px] font-bold border-none outline-none" value={ses.date || ''} onChange={e => updateSes(idx, 'date', e.target.value)} min={getTomorrow()}/>
                         </div>
                         <div>
                           <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">Hora</label>
