@@ -603,6 +603,7 @@ export enum SessionStatus {
   CANCELADA   = 'CANCELADA',
   REPROGRAMADA = 'REPROGRAMADA',
   VENCIDA = 'VENCIDA',
+  PAGADA = 'PAGADA'
 }
 
 // ── Tipos: Módulo de Tratamientos y Seguimiento ─────────────────────────────

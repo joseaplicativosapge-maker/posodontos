@@ -104,7 +104,7 @@ const CustomerTreatmentPanel: React.FC<CustomerTreatmentPanelProps> = ({
   );
 
   return (
-    <div className="mx-4 mb-3 bg-teal-50 border border-teal-100 rounded-2xl overflow-hidden">
+    <div className="mx-4 mb-3 bg-teal-50 border border-teal-100 rounded-2xl overflow-hidden mt-3">
       {/* Header */}
       <div className="px-4 py-2.5 flex items-center gap-2 border-b border-teal-100 bg-teal-600">
         <Stethoscope size={13} className="text-white shrink-0" />
