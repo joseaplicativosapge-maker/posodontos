@@ -1,6 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, LogOut, Store, Grid3X3, MonitorPlay, BarChart3, 
-  CalendarPlus2, ChevronDown, BookOpen, Calculator, Boxes, QrCode, Users, Settings, X } from 'lucide-react';
+  CalendarPlus2, ChevronDown, BookOpen, Calculator, Boxes, QrCode, Users, Settings, X,
+  Stethoscope, ClipboardList } from 'lucide-react';
 import { Branch, Role, Permission, UserRole } from '../types';
 
 interface SidebarProps {
@@ -22,18 +23,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     isMobileOpen, onCloseMobile
 }) => {
   const allItems = [
-    { id: 'dashboard', label: 'Tablero', icon: <LayoutDashboard size={20} />, permission: Permission.REPORTS_VIEW },
-    { id: 'tables', label: 'Sillas', icon: <Grid3X3 size={20} />, permission: Permission.TABLES_MANAGE },
-    { id: 'pos', label: 'Caja POS', icon: <Store size={20} />, permission: Permission.SALES_CREATE },
-    { id: 'kds', label: 'Servicios KDS', icon: <MonitorPlay size={20} />, permission: Permission.KDS_VIEW },
-    { id: 'products', label: 'Servicios', icon: <CalendarPlus2 size={20} />, permission: Permission.PRODUCTS_VIEW },
-    { id: 'menu_qr', label: 'Catálogo Digital', icon: <QrCode size={20} />, permission: Permission.PRODUCTS_VIEW },
-    { id: 'warehouse', label: 'Inventario', icon: <Boxes size={20} />, permission: Permission.INVENTARIO_VER },
-    { id: 'operational_mgmt', label: 'Gastos y Costos', icon: <Calculator size={20} />, permission: Permission.OPERATIVE_VIEW },
-    { id: 'accounting', label: 'Contabilidad', icon: <BookOpen size={20} />, permission: Permission.CONTABILIDAD_PUC_VER },
-    { id: 'reports', label: 'Reportes', icon: <BarChart3 size={20} />, permission: Permission.REPORTS_VIEW },
-    { id: 'customers', label: 'Clientes', icon: <Users size={20} />, permission: Permission.CUSTOMERS_VIEW },
-    { id: 'settings', label: 'Ajustes', icon: <Settings size={20} />, permission: Permission.SETTINGS_VIEW },
+    { id: 'dashboard',        label: 'Tablero',                  icon: <LayoutDashboard size={20} />, permission: Permission.REPORTS_VIEW },
+    { id: 'tables',           label: 'Sillas',                   icon: <Grid3X3 size={20} />,         permission: Permission.TABLES_MANAGE },
+    { id: 'pos',              label: 'Caja POS',                 icon: <Store size={20} />,           permission: Permission.SALES_CREATE },
+    { id: 'kds',              label: 'Servicios KDS',            icon: <MonitorPlay size={20} />,     permission: Permission.KDS_VIEW },
+    { id: 'products',         label: 'Servicios',                icon: <CalendarPlus2 size={20} />,   permission: Permission.PRODUCTS_VIEW },
+    { id: 'treatments',       label: 'Tratamientos',             icon: <Stethoscope size={20} />,     permission: Permission.PRODUCTS_VIEW },
+    { id: 'follow',           label: 'Seguimiento',              icon: <ClipboardList size={20} />,   permission: Permission.CUSTOMERS_VIEW },
+    { id: 'menu_qr',          label: 'Catálogo Digital',         icon: <QrCode size={20} />,          permission: Permission.PRODUCTS_VIEW },
+    { id: 'warehouse',        label: 'Inventario',               icon: <Boxes size={20} />,           permission: Permission.INVENTARIO_VER },
+    { id: 'operational_mgmt', label: 'Gastos y Costos',          icon: <Calculator size={20} />,      permission: Permission.OPERATIVE_VIEW },
+    { id: 'accounting',       label: 'Contabilidad',             icon: <BookOpen size={20} />,        permission: Permission.CONTABILIDAD_PUC_VER },
+    { id: 'reports',          label: 'Reportes',                 icon: <BarChart3 size={20} />,       permission: Permission.REPORTS_VIEW },
+    { id: 'customers',        label: 'Clientes',                 icon: <Users size={20} />,           permission: Permission.CUSTOMERS_VIEW },
+    { id: 'settings',         label: 'Ajustes',                  icon: <Settings size={20} />,        permission: Permission.SETTINGS_VIEW },
   ];
 
   const menuItems = allItems.filter(item => {
@@ -50,17 +53,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const formatRole = (role: string | UserRole) => {
     const roleStr = typeof role === 'string' ? role : String(role);
     switch(roleStr) {
-      case 'COMPANY_ADMIN': return 'ADMINISTRADOR';
+      case 'COMPANY_ADMIN':    return 'ADMINISTRADOR';
       case 'ACCOUNTING_ADMIN': return 'CONTADOR GENERAL';
-      case 'BRANCH_ADMIN': return 'GERENTE';
-      case 'CASHIER': return 'CAJERO';
-      case 'CHEF': return 'CHEF COCINA';
-      case 'SUPER_ADMIN': return 'ADMINISTRADOR MAESTRO';
+      case 'BRANCH_ADMIN':     return 'GERENTE';
+      case 'CASHIER':          return 'CAJERO';
+      case 'CHEF':             return 'CHEF COCINA';
+      case 'SUPER_ADMIN':      return 'ADMINISTRADOR MAESTRO';
       default: return roleStr.replace('_', ' ');
     }
   };
 
-  // Validar que branches sea un array válido
   const validBranches = Array.isArray(branches) ? branches : [];
 
   return (
@@ -93,25 +95,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {formatRole(userRole)}
           </p>
           <div className="mt-5 space-y-3">
-                <div>
-                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 block flex items-center gap-1">
-                      <Store size={10} /> Sucursal
-                    </label>
-                    <div className="relative">
-                        <select value={currentBranchId} onChange={(e) => onBranchChange(e.target.value)} className="w-full bg-slate-800 text-white text-xs font-medium border border-slate-700 rounded-lg py-2.5 pl-3 pr-8 outline-none focus:border-brand-500 appearance-none cursor-pointer">
-                            {validBranches.length > 0 ? (
-                              validBranches.map(b => (
-                                <option key={b.id} value={b.id}>
-                                  {b.name || 'Sin nombre'}
-                                </option>
-                              ))
-                            ) : (
-                              <option value="">No hay sucursales</option>
-                            )}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" />
-                    </div>
-                </div>
+            <div>
+              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 block flex items-center gap-1">
+                <Store size={10} /> Sucursal
+              </label>
+              <div className="relative">
+                <select
+                  value={currentBranchId}
+                  onChange={(e) => onBranchChange(e.target.value)}
+                  className="w-full bg-slate-800 text-white text-xs font-medium border border-slate-700 rounded-lg py-2.5 pl-3 pr-8 outline-none focus:border-brand-500 appearance-none cursor-pointer"
+                >
+                  {validBranches.length > 0 ? (
+                    validBranches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name || 'Sin nombre'}</option>
+                    ))
+                  ) : (
+                    <option value="">No hay sucursales</option>
+                  )}
+                </select>
+                <ChevronDown size={14} className="absolute right-2 top-2.5 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
           </div>
         </div>
 

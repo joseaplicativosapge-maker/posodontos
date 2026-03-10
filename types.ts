@@ -587,3 +587,44 @@ export interface DashboardStats {
   netProfit: number;
   profitMargin: number;
 }
+
+// ── Tipos: Módulo de Tratamientos y Seguimiento ─────────────────────────────
+
+export enum TreatmentStatus {
+  PENDIENTE    = 'PENDIENTE',
+  EN_PROGRESO  = 'EN_PROGRESO',
+  COMPLETADO   = 'COMPLETADO',
+  CANCELADO    = 'CANCELADO',
+}
+
+export enum SessionStatus {
+  PROGRAMADA  = 'PROGRAMADA',
+  REALIZADA   = 'REALIZADA',
+  CANCELADA   = 'CANCELADA',
+  REPROGRAMADA = 'REPROGRAMADA',
+}
+
+// ── Tipos: Módulo de Tratamientos y Seguimiento ─────────────────────────────
+export interface TreatmentSession {
+  id: string;
+  sessionNumber: number;
+  label: string;           // ej: "Limpieza inicial", "Control 1"
+  date?: string;           // ISO date string
+  time?: string;           // "HH:mm"
+  status: SessionStatus;
+  notes?: string;
+}
+
+export interface PatientTreatment {
+  id: string;
+  customerId: string;      // referencia a Customer.id
+  productId?: string;      // referencia a Product.id (opcional, si viene del catálogo)
+  doctor: string;
+  status: TreatmentStatus;
+  sessions: TreatmentSession[];
+  totalCost?: number;
+  notes?: string;
+  branchId: string;
+  createdAt: string;       // ISO string
+  updatedAt: string;
+}

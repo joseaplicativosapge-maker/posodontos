@@ -32,6 +32,7 @@ import {
   PurchaseOrderItem
 } from './types';
 import { AccountingAccount, AccountingVoucher, AccountingEntry } from './types_accounting';
+import { TreatmentView } from './components/TreatmentView';
 
 const DEFAULT_LOYALTY: LoyaltyConfig = {
   enabled: false,
@@ -56,6 +57,9 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [customers, setCustomers] = useState<Customer[]>([]);
+  
+  const [treatments, setTreatments] = useState<Product[]>([]);
+
   const [roleDefinitions, setRoleDefinitions] = useState<RoleDefinition[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -517,7 +521,6 @@ const App: React.FC = () => {
                 stats={branchContext.stats}
               />
             )}
-            
             {currentView === 'pos' && (
               <POSView 
                 isRegisterOpen={isRegisterOpen} 
@@ -547,7 +550,6 @@ const App: React.FC = () => {
                 onPatchOrder={(id, up) => dataService.patchOrder(id, up).then(() => branchContext.refreshBranchData())} 
               />
             )}
-
             {currentView === 'tables' && (
               <TablesView 
                 currentBranchId={branchContext.currentBranchId}
@@ -623,7 +625,6 @@ const App: React.FC = () => {
                 }} 
               />
             )}
-            
             {currentView === 'reports' && <ReportsView registers={branchContext.registers} orders={branchContext.orders} expenses={branchContext.expenses} inventory={branchContext.inventory} products={branchContext.products} puc={branchContext.puc} vouchers={branchContext.vouchers} userPermissions={Object.values(Permission)} customers={customers} suppliers={branchContext.suppliers} branches={branchContext.branches} currentBranchId={branchContext.currentBranchId} purchaseOrders={branchContext.purchaseOrders} onUpdateOrder={(order: Order) => dataService.patchOrder(order.id, order).then(() => branchContext.refreshBranchData())} />}
             {currentView === 'settings' && (
               <SettingsView 
@@ -741,6 +742,17 @@ const App: React.FC = () => {
                 currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)} 
                 taxRate={0.19} 
                 impoconsumoRate={0.08} 
+              />
+            )}
+            {currentView === 'treatments' && (
+              <TreatmentView
+                customers={customers}
+                products={branchContext.products ?? []}
+                treatments={treatments}
+                /*onAddTreatment={handleAddTreatment}
+                onUpdateTreatment={handleUpdateTreatment}
+                onDeleteTreatment={handleDeleteTreatment}*/
+                currentBranchId={branchContext.currentBranchId}
               />
             )}
             {currentView === 'menu_qr' && <QrMenuView products={branchContext.products} currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)} />}

@@ -158,11 +158,11 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
     if (prodType === ProductType.COMBO) {
       const validComboItems = prodComboItems.filter(ci => ci.productId !== '' && ci.quantity > 0);
       if (validComboItems.length === 0) {
-        notify("El combo debe incluir al menos un producto válido", "warning"); return;
+        notify("El combo debe incluir al menos un tratamiento válido", "warning"); return;
       }
       const hasIncomplete = prodComboItems.some(ci => ci.productId === '' || ci.quantity <= 0);
       if (hasIncomplete) {
-        notify("Todos los productos del combo deben estar seleccionados con cantidad válida", "warning"); return;
+        notify("Todos los tratamientos del combo deben estar seleccionados con cantidad válida", "warning"); return;
       }
     }
 
@@ -266,8 +266,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
           <div className="bg-slate-100 w-32 h-32 rounded-full flex items-center justify-center mb-6">
             <ChefHat size={48} className="text-slate-300" />
           </div>
-          <h3 className="text-2xl font-black">Sin productos</h3>
-          <p className="text-slate-500 mt-3 max-w-xs">No existen productos registrados</p>
+          <h3 className="text-2xl font-black">Sin tratamientos</h3>
+          <p className="text-slate-500 mt-3 max-w-xs">No existen tratamientos registrados</p>
           <button onClick={() => openModal()} className="mt-8 bg-slate-900 text-white px-10 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
             <Plus size={18} />
             Crear primer producto
