@@ -197,6 +197,9 @@ const App: React.FC = () => {
           await loadSettings(currentUser.companyId);
           break;
         case 'operational_mgmt':
+        case 'treatments':
+          await loadCustomersData(currentUser.companyId);
+          break;
         case 'reports':
           await loadSettings(currentUser.companyId);
           break;
@@ -770,6 +773,8 @@ const App: React.FC = () => {
               />
             )}
             {currentView === 'treatments' && (
+              <>
+                {console.log('🦷 customers:', customers)}
                 <TreatmentView
                   customers={customers}
                   products={branchContext.products ?? []}
@@ -779,6 +784,7 @@ const App: React.FC = () => {
                   onDeleteTreatment={handleDeleteTreatment}
                   currentBranchId={branchContext.currentBranchId}
                 />
+              </>
             )}
             {currentView === 'menu_qr' && <QrMenuView products={branchContext.products} currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)} />}
             {currentView === 'operational_mgmt' && 

@@ -281,6 +281,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
 
   const displayed = useMemo(() => {
     const q = search.toLowerCase();
+    console.log(customers);
     return treatments.filter(t => {
       const cust = customers.find(c => c.id === t.customerId);
       const matchSearch =
