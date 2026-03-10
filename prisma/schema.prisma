@@ -106,6 +106,20 @@ enum ItemStatus {
   READY
 }
 
+enum TreatmentStatus {
+  PENDIENTE
+  EN_PROGRESO
+  COMPLETADO
+  CANCELADO
+}
+
+enum SessionStatus {
+  PROGRAMADA
+  REALIZADA
+  CANCELADA
+  REPROGRAMADA
+}
+
 // ===============================
 // CORE
 // ===============================
@@ -115,31 +129,27 @@ model Company {
   name               String
   taxId              String  @unique
   currency           String  @default("COP")
-
   taxRate            Float   @default(0.19)
   impoconsumoRate    Float   @default(0.08)
   impoconsumoEnabled Boolean @default(false)
   modules            Json?
   loyalty            Json?
-
-  branches Branch[]
-  users    User[]
-  accounts AccountingAccount[]
-  products Product[]
-  categorys Category[]
-  suppliers Supplier[]
-  customers Customer[]
-
-  status CompanyStatus @default(ACTIVE)
+  branches           Branch[]
+  users              User[]
+  accounts           AccountingAccount[]
+  products           Product[]
+  categorys          Category[]
+  suppliers          Supplier[]
+  customers          Customer[]
+  status             CompanyStatus @default(ACTIVE)
 
   @@map("Company")
 }
 
 model Branch {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
+  id            String  @id @default(cuid())
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id])
   name          String
   address       String
   phone         String
@@ -149,7 +159,6 @@ model Branch {
   businessHours String?
   logoUrl       String? @db.LongText
   isActive      Boolean
-
   users          User[]
   registers      CashRegister[]
   tables         Table[]
@@ -159,6 +168,7 @@ model Branch {
   inventory      InventoryItem[]
   vouchers       AccountingVoucher[]
   reservations   Reservation[]
+  treatments     PatientTreatment[]
 
   @@index([companyId])
   @@map("Branch")
@@ -169,23 +179,18 @@ model Branch {
 // ===============================
 
 model User {
-  id    String @id @default(cuid())
-  name  String
-  email String @unique
-  pin   String
-  role  Role   @default(CASHIER)
-
+  id        String  @id @default(cuid())
+  name      String
+  email     String  @unique
+  pin       String
+  role      Role    @default(CASHIER)
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
-
-  branchId String?
-  branch   Branch? @relation(fields: [branchId], references: [id])
-
+  branchId  String?
+  branch    Branch? @relation(fields: [branchId], references: [id])
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-
-  openRegisters CashRegister[]
-
+  openRegisters    CashRegister[]
   registerSessions RegisterSession[]
 
   @@map("User")
@@ -201,41 +206,35 @@ model AccountingAccount {
   name               String
   nature             AccountNature
   financialStatement String
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  entries AccountingEntry[]
+  companyId          String
+  company            Company       @relation(fields: [companyId], references: [id])
+  entries            AccountingEntry[]
 
   @@unique([code, companyId])
   @@map("AccountingAccount")
 }
 
 model AccountingVoucher {
-  id       String @id @default(cuid())
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
+  id          String      @id @default(cuid())
+  branchId    String
+  branch      Branch      @relation(fields: [branchId], references: [id])
   type        VoucherType
   referenceId String?
   date        DateTime    @default(now())
   totalDebit  Float
   totalCredit Float
   notes       String?
-
-  entries AccountingEntry[]
+  entries     AccountingEntry[]
 
   @@map("AccountingVoucher")
 }
 
 model AccountingEntry {
-  id        String            @id @default(cuid())
-  voucherId String
-  voucher   AccountingVoucher @relation(fields: [voucherId], references: [id])
-
-  accountId String
-  account   AccountingAccount @relation(fields: [accountId], references: [id])
-
+  id          String            @id @default(cuid())
+  voucherId   String
+  voucher     AccountingVoucher @relation(fields: [voucherId], references: [id])
+  accountId   String
+  account     AccountingAccount @relation(fields: [accountId], references: [id])
   debit       Float
   credit      Float
   description String
@@ -248,27 +247,24 @@ model AccountingEntry {
 // ===============================
 
 model InventoryItem {
-  id       String @id @default(cuid())
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
+  id               String    @id @default(cuid())
+  branchId         String
+  branch           Branch    @relation(fields: [branchId], references: [id])
   name             String
-  unit             String  @default("und")
-  stock            Float   @default(0)
-  minStock         Float   @default(5)
+  unit             String    @default("und")
+  stock            Float     @default(0)
+  minStock         Float     @default(5)
   maxStock         Float
-  cost             Float   @default(0)
-  isActive         Boolean @default(true)
+  cost             Float     @default(0)
+  isActive         Boolean   @default(true)
   usageUnit        String
   conversionFactor Float
-
-  productId  String?
-  supplierId String?
-  supplier   Supplier? @relation(fields: [supplierId], references: [id])
-
-  recipeItems   RecipeItem[]
-  movements     InventoryMovement[]
-  purchaseItems PurchaseOrderItem[]
+  productId        String?
+  supplierId       String?
+  supplier         Supplier? @relation(fields: [supplierId], references: [id])
+  recipeItems      RecipeItem[]
+  movements        InventoryMovement[]
+  purchaseItems    PurchaseOrderItem[]
 
   @@map("InventoryItem")
 }
@@ -277,14 +273,13 @@ model InventoryMovement {
   id              String        @id @default(cuid())
   inventoryItemId String
   item            InventoryItem @relation(fields: [inventoryItemId], references: [id])
-
-  type          InventoryMovementType
-  quantity      Float
-  previousStock Float
-  newStock      Float
-  reason        String?
-  reference     String?
-  createdAt     DateTime              @default(now())
+  type            InventoryMovementType
+  quantity        Float
+  previousStock   Float
+  newStock        Float
+  reason          String?
+  reference       String?
+  createdAt       DateTime @default(now())
 
   @@map("InventoryMovement")
 }
@@ -294,26 +289,22 @@ model InventoryMovement {
 // ===============================
 
 model Category {
-  id       String  @id @default(cuid())
-  name     String
-  isActive Boolean @default(true)
-
+  id        String  @id @default(cuid())
+  name      String
+  isActive  Boolean @default(true)
   companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  products Product[]
+  company   Company  @relation(fields: [companyId], references: [id])
+  products  Product[]
 
   @@map("Category")
 }
 
 model Product {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
-
+  id                 String      @id @default(cuid())
+  companyId          String
+  company            Company     @relation(fields: [companyId], references: [id])
+  categoryId         String
+  category           Category    @relation(fields: [categoryId], references: [id])
   name               String
   price              Float
   cost               Float?
@@ -325,70 +316,59 @@ model Product {
   pucIncomeAccountId String?
   promotionType      String?
   promotionValue     Float?
-
-  ingredients RecipeItem[]
-  orderItems  OrderItem[]
-
-  comboParents  ComboItem[] @relation("ComboParent")
-  comboChildren ComboItem[] @relation("ComboChild")
+  ingredients        RecipeItem[]
+  orderItems         OrderItem[]
+  treatments         PatientTreatment[]
+  comboParents       ComboItem[] @relation("ComboParent")
+  comboChildren      ComboItem[] @relation("ComboChild")
 
   @@map("Product")
 }
 
 model ComboItem {
-  id String @id @default(cuid())
-
+  id              String  @id @default(cuid())
   parentProductId String
   childProductId  String
-  quantity        Int    @default(1)
-
-  parentProduct Product @relation("ComboParent", fields: [parentProductId], references: [id])
-  childProduct  Product @relation("ComboChild", fields: [childProductId], references: [id])
+  quantity        Int     @default(1)
+  parentProduct   Product @relation("ComboParent", fields: [parentProductId], references: [id])
+  childProduct    Product @relation("ComboChild", fields: [childProductId], references: [id])
 
   @@unique([parentProductId, childProductId])
   @@map("ComboItem")
 }
 
 model RecipeItem {
-  id        String  @id @default(cuid())
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
+  id              String        @id @default(cuid())
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
   inventoryItemId String
   inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
-
-  quantity Float
-  recipeUnit String?
+  quantity        Float
+  recipeUnit      String?
 
   @@map("RecipeItem")
 }
 
 model Order {
-  id       String @id @default(cuid())
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  tableId String?
-  table   Table?  @relation(fields: [tableId], references: [id], map: "fk_order_table")
-
-  status OrderStatus @default(PENDING)
-
-  type            OrderType      @default(TAKEAWAY)
-  paymentMethod   PaymentMethod?
-  deliveryAddress String?
-
+  id                String        @id @default(cuid())
+  branchId          String
+  branch            Branch        @relation(fields: [branchId], references: [id])
+  tableId           String?
+  table             Table?        @relation(fields: [tableId], references: [id], map: "fk_order_table")
+  status            OrderStatus   @default(PENDING)
+  type              OrderType     @default(TAKEAWAY)
+  paymentMethod     PaymentMethod?
+  deliveryAddress   String?
   subtotal          Float
   tax               Float
-  impoconsumoAmount Float @default(0)
+  impoconsumoAmount Float         @default(0)
   total             Float
-
-  items      OrderItem[]
-  createdAt  DateTime    @default(now())
-  totalCost  Float       @default(0)
-  customerId String?
-  customer   Customer?   @relation(fields: [customerId], references: [id], map: "fk_order_customer")
-
-  isSentToDIAN Boolean @default(false)
+  items             OrderItem[]
+  createdAt         DateTime      @default(now())
+  totalCost         Float         @default(0)
+  customerId        String?
+  customer          Customer?     @relation(fields: [customerId], references: [id], map: "fk_order_customer")
+  isSentToDIAN      Boolean       @default(false)
 
   @@map("Order")
 }
@@ -400,9 +380,8 @@ model OrderItem {
   productId String
   product   Product    @relation(fields: [productId], references: [id])
   status    ItemStatus @default(PENDING)
-
-  quantity Int
-  price    Float
+  quantity  Int
+  price     Float
 
   @@map("OrderItem")
 }
@@ -412,40 +391,34 @@ model OrderItem {
 // ===============================
 
 model Table {
-  id       String @id @default(cuid())
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  name   String
-  seats  Int         @default(4)
-  status TableStatus @default(DISPONIBLE)
-  isBar  Boolean     @default(false)
-
-  orders Order[]
-  mergedWith     Json?
-  parentId       String?
+  id         String      @id @default(cuid())
+  branchId   String
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  name       String
+  seats      Int         @default(4)
+  status     TableStatus @default(DISPONIBLE)
+  isBar      Boolean     @default(false)
+  orders     Order[]
+  mergedWith Json?
+  parentId   String?
 
   @@map("Table")
 }
 
 model CashRegister {
-  id String @id @default(cuid())
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
+  id            String   @id @default(cuid())
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
   currentUserId String?
-  currentUser   User?   @relation(fields: [currentUserId], references: [id])
-  printType     String  @default("PDF")
+  currentUser   User?    @relation(fields: [currentUserId], references: [id])
+  printType     String   @default("PDF")
   qzPrinterName String?
   ticketFooter  String?
-  autoPrint     Boolean @default(false)
-
-  sessions RegisterSession[]
-
-  name     String
-  isOpen   Boolean @default(false)
-  isActive Boolean @default(true)
+  autoPrint     Boolean  @default(false)
+  sessions      RegisterSession[]
+  name          String
+  isOpen        Boolean  @default(false)
+  isActive      Boolean  @default(true)
 
   @@map("CashRegister")
 }
@@ -464,9 +437,9 @@ model Customer {
   points               Int       @default(0)
   isActive             Boolean   @default(true)
   orders               Order[]
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
+  treatments           PatientTreatment[]
+  companyId            String
+  company              Company   @relation(fields: [companyId], references: [id])
 
   @@map("Customer")
 }
@@ -503,31 +476,29 @@ model Supplier {
   expenses       Expense[]
   purchaseOrders PurchaseOrder[]
   InventoryItem  InventoryItem[]
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
+  companyId      String
+  company        Company         @relation(fields: [companyId], references: [id])
 
   @@map("Supplier")
 }
 
 model PurchaseOrder {
-  id         String              @id @default(cuid())
-  branchId   String
-  branch     Branch              @relation(fields: [branchId], references: [id])
-  supplierId String
-  supplier   Supplier            @relation(fields: [supplierId], references: [id])
-  total      Float
-  status     PurchaseOrderStatus @default(BORRADOR)
-  notes      String?
-  createdAt  DateTime            @default(now())
-  receivedAt DateTime?
-  items      PurchaseOrderItem[]
-
-  paymentType    String    @default("CONTADO") 
-  creditDays     Int? 
-  creditDueDate  DateTime?
-  paymentStatus  String    @default("PAGADO")
-  paidAmount     Float     @default(0)
+  id            String              @id @default(cuid())
+  branchId      String
+  branch        Branch              @relation(fields: [branchId], references: [id])
+  supplierId    String
+  supplier      Supplier            @relation(fields: [supplierId], references: [id])
+  total         Float
+  status        PurchaseOrderStatus @default(BORRADOR)
+  notes         String?
+  createdAt     DateTime            @default(now())
+  receivedAt    DateTime?
+  items         PurchaseOrderItem[]
+  paymentType   String              @default("CONTADO")
+  creditDays    Int?
+  creditDueDate DateTime?
+  paymentStatus String              @default("PAGADO")
+  paidAmount    Float               @default(0)
 
   @@map("PurchaseOrder")
 }
@@ -577,11 +548,55 @@ model Reservation {
   customerName  String
   customerPhone String
   customerEmail String?
-  date          String // ISO Date YYYY-MM-DD
-  time          String // HH:mm
+  date          String
+  time          String
   seats         Int
   tableId       String?
-  status        String   @default("PENDIENTE") // PENDIENTE, CONFIRMADA, CANCELADA, COMPLETADA
+  status        String   @default("PENDIENTE")
   notes         String?  @db.Text
   createdAt     DateTime @default(now())
+}
+
+// ===============================
+// TRATAMIENTOS
+// ===============================
+
+model PatientTreatment {
+  id          String           @id @default(cuid())
+  branchId    String
+  branch      Branch           @relation(fields: [branchId], references: [id])
+  customerId  String
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  productId   String?
+  product     Product?         @relation(fields: [productId], references: [id])
+  name        String
+  description String?          @db.Text
+  doctor      String
+  status      TreatmentStatus  @default(PENDIENTE)
+  totalCost   Float?
+  notes       String?          @db.Text
+  sessions    TreatmentSession[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([branchId])
+  @@index([customerId])
+  @@map("PatientTreatment")
+}
+
+model TreatmentSession {
+  id            String           @id @default(cuid())
+  treatmentId   String
+  treatment     PatientTreatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  sessionNumber Int
+  label         String
+  date          String?
+  time          String?
+  status        SessionStatus    @default(PROGRAMADA)
+  notes         String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([treatmentId])
+  @@map("TreatmentSession")
 }

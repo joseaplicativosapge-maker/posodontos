@@ -58,6 +58,16 @@ export const dataService = {
     return safeWrite(isNew ? api.post('/products', payload) : api.put(`/products/${payload.id}`, payload));
   },
   
+  //
+  getTreatments: (branchId?: string) => 
+    safeCall(api.get(`/treatments?branchId=${branchId}`), []),
+
+  saveTreatment: (data: any) => {
+    const { isNew, ...payload } = data;
+    return safeWrite(isNew ? api.post('/treatments', payload) : api.put(`/treatments/${payload.id}`, payload));
+  },
+
+  deleteTreatment: (id: string) => api.delete(`/treatments/${id}`),
   // Inventario
   getInventory: (branchId: string) => safeCall(api.get(`/inventory?branchId=${branchId}`), MOCKS.MOCK_INVENTORY),
   saveInventoryItem: (data: any, isUpdate: boolean = false) => {

@@ -29,7 +29,8 @@ import {
   MovementType, PurchaseOrder, Permission, Role, ProductionArea,
   ExpensePeriodicity,
   ImpoconsumoConfig,
-  PurchaseOrderItem
+  PurchaseOrderItem,
+  PatientTreatment
 } from './types';
 import { AccountingAccount, AccountingVoucher, AccountingEntry } from './types_accounting';
 import { TreatmentView } from './components/TreatmentView';
@@ -58,7 +59,7 @@ const App: React.FC = () => {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   
-  const [treatments, setTreatments] = useState<Product[]>([]);
+  const [treatments, setTreatments] = useState<PatientTreatment[]>([]);
 
   const [roleDefinitions, setRoleDefinitions] = useState<RoleDefinition[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
@@ -234,6 +235,30 @@ const App: React.FC = () => {
       notify("Error al comunicar con la API de KDS. Intente de nuevo.", "error");
       await branchContext.refreshBranchData();
     }
+  };
+
+  const loadTreatmentsData = async (branchId?: string) => {
+    try {
+      const res = await dataService.getTreatments(branchId);
+      setTreatments(res.data || []);
+    } catch (error) {
+      console.error("Error cargando tratamientos");
+    }
+  };
+
+  const handleAddTreatment = async (t: PatientTreatment) => {
+    await dataService.saveTreatment({ ...t, isNew: true, companyId: branchContext.currentCompanyId });
+    await loadTreatmentsData(branchContext.currentBranchId);
+  };
+
+  const handleUpdateTreatment = async (t: PatientTreatment) => {
+    await dataService.saveTreatment(t);
+    await loadTreatmentsData(branchContext.currentBranchId);
+  };
+
+  const handleDeleteTreatment = async (id: string) => {
+    await dataService.deleteTreatment(id);
+    await loadTreatmentsData(branchContext.currentBranchId);
   };
 
   // --- LOGICA DE BLOQUEO DE CAJA ---
@@ -745,15 +770,18 @@ const App: React.FC = () => {
               />
             )}
             {currentView === 'treatments' && (
-              <TreatmentView
-                customers={customers}
-                products={branchContext.products ?? []}
-                treatments={treatments}
-                /*onAddTreatment={handleAddTreatment}
-                onUpdateTreatment={handleUpdateTreatment}
-                onDeleteTreatment={handleDeleteTreatment}*/
-                currentBranchId={branchContext.currentBranchId}
-              />
+              <>
+                {console.log('🦷 treatments:', treatments)}
+                <TreatmentView
+                  customers={customers}
+                  products={branchContext.products ?? []}
+                  treatments={branchContext.treatments}
+                  onAddTreatment={handleAddTreatment}
+                  onUpdateTreatment={handleUpdateTreatment}
+                  onDeleteTreatment={handleDeleteTreatment}
+                  currentBranchId={branchContext.currentBranchId}
+                />
+              </>
             )}
             {currentView === 'menu_qr' && <QrMenuView products={branchContext.products} currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)} />}
             {currentView === 'operational_mgmt' && 

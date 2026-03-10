@@ -7,7 +7,7 @@ import {
   Customer, Product,
   PatientTreatment, TreatmentSession, TreatmentStatus, SessionStatus
 } from '../types';
-import { useNotification } from './NotificationContext';
+import { useNotification } from './NotificationContext';;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMPORTANTE: Agrega estos dos campos a PatientTreatment en types.ts:
@@ -61,7 +61,6 @@ const blank = (branchId: string): FormData => ({
   notes:       '',
   branchId,
 });
-
 const formatCOP = (v: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v);
 
@@ -71,7 +70,6 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   onAddTreatment, onUpdateTreatment, onDeleteTreatment,
   currentBranchId,
 }) => {
-  const { notify } = useNotification();
 
   // ── State lista ──
   const [search,       setSearch]       = useState('');
@@ -84,6 +82,8 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   const [form,       setForm]       = useState<FormData>(blank(currentBranchId));
   const [custSearch, setCustSearch] = useState('');
   const [showDrop,   setShowDrop]   = useState(false);
+  
+  const { notify, confirm } = useNotification();
 
   // ── Pacientes filtrados ──
   const filteredCusts = useMemo(() => {
@@ -217,9 +217,9 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Total',       val: stats.total,      color: 'bg-slate-900 text-white'     },
-          { label: 'En Progreso', val: stats.progreso,   color: 'bg-blue-600 text-white'      },
-          { label: 'Completados', val: stats.completado, color: 'bg-emerald-600 text-white'   },
-          { label: 'Pendientes',  val: stats.pendiente,  color: 'bg-orange-500 text-white'    },
+          { label: 'En Progreso', val: stats.progreso,   color: 'bg-slate-900 text-white'      },
+          { label: 'Completados', val: stats.completado, color: 'bg-slate-900 text-white'   },
+          { label: 'Pendientes',  val: stats.pendiente,  color: 'bg-slate-900 text-white'    },
         ].map(s => (
           <div key={s.label} className={`${s.color} rounded-[2rem] p-5 shadow-sm`}>
             <p className="text-3xl font-black leading-none">{s.val}</p>
@@ -341,7 +341,16 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                       <Edit2 size={15} />
                     </button>
                     <button
-                      onClick={() => { if (confirm('¿Eliminar este tratamiento?')) onDeleteTreatment(t.id); }}
+                      onClick={async () => {
+                        const ok = await confirm({
+                            title: '¿Eliminar tratamiento?',
+                            message: `Se eliminará "${(t as any).name || 'este tratamiento'}" y todas sus sesiones. Esta acción no se puede deshacer.`,
+                            type: 'danger',
+                            confirmText: 'Sí, eliminar',
+                            cancelText: 'Cancelar',
+                        });
+                        if (ok) onDeleteTreatment(t.id);
+                        }}
                       className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                       title="Eliminar"
                     >

@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { dataService } from '../services/data.service';
 import { 
   Branch, Product, InventoryItem, Order, Table, User,
-  CashRegister, Expense, Category, Supplier, PurchaseOrder, InventoryMovement, DashboardStats
+  CashRegister, Expense, Category, Supplier, PurchaseOrder, InventoryMovement, DashboardStats,
+  PatientTreatment
 } from '../types';
 import { AccountingAccount, AccountingVoucher } from '../types_accounting';
 import { useNotification } from './NotificationContext';
@@ -57,6 +58,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [treatments, setTreatments] = useState<PatientTreatment[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   
   const loadGlobalData = async (companyId: string) => {
@@ -107,7 +109,8 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     
     setIsLoadingBranch(true);
     try {
-      const [bRes, inv, exp, t, reg, ord, vch, po, mov, statRes, ordCom, cRes, pRes, ppRes] = await Promise.all([
+      const [bRes, inv, exp, t, reg, ord, vch, po, mov, statRes, 
+        ordCom, cRes, pRes, ppRes, tRes] = await Promise.all([
         dataService.getBranches(currentCompanyId),
         dataService.getInventory(currentBranchId),
         dataService.getExpenses(currentBranchId),
@@ -121,7 +124,8 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         dataService.getOrdersCompleted(currentBranchId),
         dataService.getCategories(currentCompanyId),
         dataService.getProducts(currentCompanyId),
-        dataService.getSuppliers(currentCompanyId)
+        dataService.getSuppliers(currentCompanyId),
+        dataService.getTreatments(currentBranchId)
       ]);
 
       setBranches(bRes.data || []);
@@ -138,6 +142,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setCategories(cRes.data || []);
       setProducts(pRes.data || []);
       setSuppliers(ppRes.data || []);
+      setTreatments(tRes.data || []);
 
       const mappedMovements = (mov.data || []).map((m: any) => ({
         ...m,
@@ -232,6 +237,7 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       categories,
       products,
       suppliers,
+      treatments,
       purchaseOrders,
       movements,
       stats,
