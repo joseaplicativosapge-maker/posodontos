@@ -32,7 +32,7 @@ const S_CFG: Record<SessionStatus, { label: string; dot: string; bg: string }> =
   [SessionStatus.REALIZADA]:    { label: 'Realizada',    dot: 'bg-emerald-500', bg: 'bg-emerald-100' },
   [SessionStatus.CANCELADA]:    { label: 'Cancelada',    dot: 'bg-red-500',     bg: 'bg-red-100'     },
   [SessionStatus.REPROGRAMADA]: { label: 'Reprogramada', dot: 'bg-yellow-500',  bg: 'bg-yellow-100'  },
-  [SessionStatus.VENCIDA]: { label: 'Vencida', dot: 'bg-red-700', bg: 'bg-red-200' },
+  [SessionStatus.VENCIDA]:      { label: 'Vencida',      dot: 'bg-red-700',     bg: 'bg-red-200'     },
 };
 
 const newSes = (num: number): TreatmentSession => ({
@@ -41,7 +41,7 @@ const newSes = (num: number): TreatmentSession => ({
   label: `Sesión ${num}`,
   status: SessionStatus.PROGRAMADA,
   isScheduled: false,
-});;
+});
 
 type FormData = Omit<PatientTreatment, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -219,24 +219,28 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             />
           </div>
 
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-slate-100 text-slate-600 font-black py-4 rounded-[2rem] uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
-            >
+          <div className="flex gap-4 pt-3">
+            <button type="button" onClick={onClose} className="flex-1 h-12 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold text-xs uppercase tracking-widest transition-all duration-200 hover:bg-slate-100 hover:border-slate-300 active:scale-[0.98]">
               Cancelar
             </button>
+
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className={`flex-2 flex-grow-[2] ${isRescheduling ? 'bg-amber-500 hover:bg-amber-600' : 'bg-teal-600 hover:bg-teal-700'} text-white font-black py-4 rounded-[2rem] shadow-lg uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 disabled:opacity-60`}
-            >
-              <CalendarPlus size={14} />
-              {saving ? 'Guardando...' : isRescheduling ? 'Confirmar Reagendamiento' : 'Confirmar Cita'}
+              className={`flex-1 h-12 rounded-2xl text-white font-bold text-xs uppercase tracking-widest shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60 ${
+                isRescheduling
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
+                  : 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700'
+              }`}>
+              {saving
+                ? 'Guardando...'
+                : isRescheduling
+                ? 'Confirmar Reagendamiento'
+                : 'Confirmar Cita'}
             </button>
           </div>
+
         </div>
       </div>
     </div>
@@ -279,62 +283,59 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   }, [customers, custSearch]);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
-    const getTomorrow = () => {
-        const d = new Date();
-        d.setDate(d.getDate());
-        return d.toISOString().split('T')[0];
-    };
-    const displayed = useMemo(() => {
-        const q = search.toLowerCase();
-        return treatments.filter(t => {
-        const cust = customers.find(c => c.id === t.customerId);
-        const matchSearch =
-            t.name?.toLowerCase().includes(q) ||
-            t.doctor.toLowerCase().includes(q) ||
-            cust?.name.toLowerCase().includes(q);
-        const matchStatus = filterStatus === 'TODOS' || t.status === filterStatus;
-        return matchSearch && matchStatus;
-        });
-    }, [treatments, customers, search, filterStatus]);
 
-    const stats = useMemo(() => ({
-        total:      treatments.length,
-        progreso:   treatments.filter(t => t.status === TreatmentStatus.EN_PROGRESO).length,
-        completado: treatments.filter(t => t.status === TreatmentStatus.COMPLETADO).length,
-        pendiente:  treatments.filter(t => t.status === TreatmentStatus.PENDIENTE).length,
-    }), [treatments]);
+  const getTomorrow = () => {
+    const d = new Date();
+    d.setDate(d.getDate());
+    return d.toISOString().split('T')[0];
+  };
 
-    const openNew = () => {
-        setEditingId(null);
-        setForm(blank(currentBranchId));
-        setCustSearch('');
-        setSelectedCustomerId('');
-        setShowDrop(false);
-        setIsOpen(true);
-    };
+  const displayed = useMemo(() => {
+    const q = search.toLowerCase();
+    return treatments.filter(t => {
+      const cust = customers.find(c => c.id === t.customerId);
+      const matchSearch =
+        t.name?.toLowerCase().includes(q) ||
+        t.doctor.toLowerCase().includes(q) ||
+        cust?.name.toLowerCase().includes(q);
+      const matchStatus = filterStatus === 'TODOS' || t.status === filterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [treatments, customers, search, filterStatus]);
 
-    const openEdit = (t: PatientTreatment) => {
-        setEditingId(t.id);
+  const stats = useMemo(() => ({
+    total:      treatments.length,
+    progreso:   treatments.filter(t => t.status === TreatmentStatus.EN_PROGRESO).length,
+    completado: treatments.filter(t => t.status === TreatmentStatus.COMPLETADO).length,
+    pendiente:  treatments.filter(t => t.status === TreatmentStatus.PENDIENTE).length,
+  }), [treatments]);
 
-        setForm({
-            customerId: t.customerId,
-            productId:  t.productId || '',
-            name:       t.name || '',
-            doctor:     t.doctor,
-            status:     t.status,
+  const openNew = () => {
+    setEditingId(null);
+    setForm(blank(currentBranchId));
+    setCustSearch('');
+    setSelectedCustomerId('');
+    setShowDrop(false);
+    setIsOpen(true);
+  };
 
-            // 🔥 NO TOCAR isScheduled
-            sessions: t.sessions.map(s => ({ ...s })),
-
-            totalCost: t.totalCost || 0,
-            notes:     t.notes || '',
-            branchId:  t.branchId,
-        });
-
-        setSelectedCustomerId(t.customerId);
-        setCustSearch(customers.find(c => c.id === t.customerId)?.name || '');
-        setShowDrop(false);
-        setIsOpen(true);
+  const openEdit = (t: PatientTreatment) => {
+    setEditingId(t.id);
+    setForm({
+      customerId: t.customerId,
+      productId:  t.productId || '',
+      name:       t.name || '',
+      doctor:     t.doctor,
+      status:     t.status,
+      sessions:   t.sessions.map(s => ({ ...s })),
+      totalCost:  t.totalCost || 0,
+      notes:      t.notes || '',
+      branchId:   t.branchId,
+    });
+    setSelectedCustomerId(t.customerId);
+    setCustSearch(customers.find(c => c.id === t.customerId)?.name || '');
+    setShowDrop(false);
+    setIsOpen(true);
   };
 
   const selectCustomer = (c: Customer) => {
@@ -375,93 +376,55 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedCustomerId) {
-        notify('Selecciona un paciente', 'warning');
-        return;
-    }
+    if (!selectedCustomerId) { notify('Selecciona un paciente', 'warning'); return; }
+    if (!form.name.trim())   { notify('Ingresa el nombre del tratamiento', 'warning'); return; }
+    if (!form.doctor.trim()) { notify('Ingresa el profesional responsable', 'warning'); return; }
 
-    if (!form.name.trim()) {
-        notify('Ingresa el nombre del tratamiento', 'warning');
-        return;
-    }
-
-    if (!form.doctor.trim()) {
-        notify('Ingresa el profesional responsable', 'warning');
-        return;
-    }
-
-    const now = new Date().toISOString();
-
-    const payload = {
-        ...form,
-        customerId: selectedCustomerId,
-        sessions: form.sessions,
-    };
+    const now     = new Date().toISOString();
+    const payload = { ...form, customerId: selectedCustomerId, sessions: form.sessions };
 
     setSaving(true);
-
     try {
-        if (editingId) {
-        await onUpdateTreatment({
-            ...payload,
-            id: editingId,
-            updatedAt: now,
-        });
-
+      if (editingId) {
+        await onUpdateTreatment({ ...payload, id: editingId, updatedAt: now });
         notify('Tratamiento actualizado', 'success');
-        } else {
-        await onAddTreatment({
-            ...payload,
-            id: `trx-${Date.now()}`,
-            createdAt: now,
-            updatedAt: now,
-        });
-
+      } else {
+        await onAddTreatment({ ...payload, id: `trx-${Date.now()}`, createdAt: now, updatedAt: now });
         notify('Tratamiento asignado', 'success');
-        }
-
-        setIsOpen(false);
+      }
+      setIsOpen(false);
     } catch {
-        notify('Error al guardar el tratamiento', 'error');
+      notify('Error al guardar el tratamiento', 'error');
     } finally {
-        setSaving(false);
+      setSaving(false);
     }
-    };
+  };
 
-    const handleScheduleSaved = async (sesId: string, date: string, time: string) => {
-        if (!scheduleTarget) return;
-
-        const { treatment } = scheduleTarget;
-
-        const updatedSessions = treatment.sessions.map(s => {
-            if (s.id !== sesId) return s;
-
-            return {
-            ...s,
-            date,
-            time,
-            isScheduled: true,
-            status:
-                s.date && s.date !== date
-                ? SessionStatus.REPROGRAMADA
-                : SessionStatus.PROGRAMADA,
-            };
-        });
-
-        const now = new Date().toISOString();
-
-        await onUpdateTreatment({
-            ...treatment,
-            sessions: updatedSessions,
-            createdAt: treatment.createdAt,
-            updatedAt: now,
-        });
-    };
+  const handleScheduleSaved = async (sesId: string, date: string, time: string) => {
+    if (!scheduleTarget) return;
+    const { treatment } = scheduleTarget;
+    const updatedSessions = treatment.sessions.map(s => {
+      if (s.id !== sesId) return s;
+      return {
+        ...s,
+        date,
+        time,
+        isScheduled: true,
+        status: s.date && s.date !== date ? SessionStatus.REPROGRAMADA : SessionStatus.PROGRAMADA,
+      };
+    });
+    const now = new Date().toISOString();
+    await onUpdateTreatment({ ...treatment, sessions: updatedSessions, createdAt: treatment.createdAt, updatedAt: now });
+  };
 
   const getProgress = (t: PatientTreatment) => {
     if (!t.sessions.length) return 0;
     return Math.round((t.sessions.filter(s => s.status === SessionStatus.REALIZADA).length / t.sessions.length) * 100);
   };
+
+  // ── precio por sesión ──────────────────────────────────────────────────────
+  const pricePerSession = (totalCost: number, sessionCount: number) =>
+    sessionCount > 0 && totalCost > 0 ? totalCost / sessionCount : null;
 
   return (
     <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-50 pb-24">
@@ -547,6 +510,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
             const done    = t.sessions.filter(s => s.status === SessionStatus.REALIZADA).length;
             const isExp   = expandedId === t.id;
             const nextSes = t.sessions.find(s => s.status === SessionStatus.PROGRAMADA && s.date);
+            const pps     = pricePerSession(t.totalCost || 0, t.sessions.length);
 
             return (
               <div key={t.id} className={`bg-white rounded-[2rem] border shadow-sm overflow-hidden transition-all ${cfg.border}`}>
@@ -614,31 +578,38 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
 
                 {isExp && (
                   <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/60 space-y-2 animate-in slide-in-from-top-2">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Calendar size={11} /> Sesiones del tratamiento
-                    </p>
+
+                    {/* Header sesiones con precio por sesión */}
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Calendar size={11} /> Sesiones del tratamiento
+                      </p>
+                      {pps && (
+                        <span className="flex items-center gap-1 bg-teal-50 border border-teal-100 text-teal-600 text-[9px] font-black px-2.5 py-1 rounded-full">
+                          <DollarSign size={9} />
+                          {formatCOP(pps)} / sesión
+                        </span>
+                      )}
+                    </div>
+
                     {t.sessions.length === 0 ? (
                       <p className="text-xs text-slate-400 font-medium text-center py-4">Sin sesiones registradas.</p>
                     ) : (
                       <div className="space-y-2">
                         {t.sessions.map((ses, idx) => {
-                            
                           const today = new Date();
-                          today.setHours(0,0,0,0);
+                          today.setHours(0, 0, 0, 0);
                           let effectiveStatus = ses.status;
 
                           if (ses.date && ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA) {
                             const sessionDate = new Date(ses.date);
-                            sessionDate.setHours(0,0,0,0);
-
-                            if (sessionDate < today) {
-                                effectiveStatus = SessionStatus.VENCIDA;
-                            }
+                            sessionDate.setHours(0, 0, 0, 0);
+                            if (sessionDate < today) effectiveStatus = SessionStatus.VENCIDA;
                           }
 
-                          const sc = S_CFG[effectiveStatus];
+                          const sc          = S_CFG[effectiveStatus];
                           const canSchedule = effectiveStatus !== SessionStatus.REALIZADA && effectiveStatus !== SessionStatus.CANCELADA;
-                          const hasDate = !!ses.isScheduled;
+                          const hasDate     = !!ses.isScheduled;
 
                           return (
                             <div key={ses.id} className="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-slate-100">
@@ -656,6 +627,12 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                                 {(ses.date || ses.time) && (
                                   <p className="text-[9px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
                                     <Calendar size={8} />{ses.date} {ses.time && `· ${ses.time}`}
+                                  </p>
+                                )}
+                                {/* ── precio por sesión ── */}
+                                {pps && (
+                                  <p className="text-[9px] font-black text-teal-500 mt-0.5 flex items-center gap-1">
+                                    <DollarSign size={8} />{formatCOP(pps)}
                                   </p>
                                 )}
                                 {ses.notes && <p className="text-[9px] text-slate-400 italic mt-1">{ses.notes}</p>}
@@ -791,38 +768,80 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Desde catálogo (opcional)</label>
-                  <select className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-bold text-[11px] uppercase outline-none focus:ring-2 focus:ring-teal-500" value={form.productId || ''} onChange={e => handleProductSelect(e.target.value)}>
+                  <select
+                    className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-bold text-[11px] uppercase outline-none focus:ring-2 focus:ring-teal-500"
+                    value={form.productId || ''}
+                    onChange={e => handleProductSelect(e.target.value)}
+                  >
                     <option value="">Seleccionar del catálogo...</option>
                     {products.filter(p => p.isActive).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Estado</label>
-                  <select className="w-full bg-slate-900 text-white border-none rounded-2xl p-3.5 font-black text-[11px] uppercase outline-none" value={form.status} onChange={e => setField('status', e.target.value as TreatmentStatus)}>
+                  <select
+                    className="w-full bg-slate-900 text-white border-none rounded-2xl p-3.5 font-black text-[11px] uppercase outline-none"
+                    value={form.status}
+                    onChange={e => setField('status', e.target.value as TreatmentStatus)}
+                  >
                     {Object.values(TreatmentStatus).map(s => <option key={s} value={s}>{T_CFG[s].label}</option>)}
                   </select>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Nombre del Tratamiento *</label>
-                  <input required type="text" className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-bold text-sm uppercase outline-none focus:ring-2 focus:ring-teal-500" value={form.name} onChange={e => setField('name', e.target.value.toUpperCase())} placeholder="Ej: ORTODONCIA COMPLETA" />
+                  <input
+                    required
+                    type="text"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-bold text-sm uppercase outline-none focus:ring-2 focus:ring-teal-500"
+                    value={form.name}
+                    onChange={e => setField('name', e.target.value.toUpperCase())}
+                    placeholder="Ej: ORTODONCIA COMPLETA"
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Profesional / Doctor *</label>
-                  <input required type="text" className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-bold text-sm outline-none focus:ring-2 focus:ring-teal-500" value={form.doctor} onChange={e => setField('doctor', e.target.value)} placeholder="Nombre del profesional" />
+                  <input
+                    required
+                    type="text"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-bold text-sm outline-none focus:ring-2 focus:ring-teal-500"
+                    value={form.doctor}
+                    onChange={e => setField('doctor', e.target.value)}
+                    placeholder="Nombre del profesional"
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Costo Total ($)</label>
-                  <input type="number" min="0" className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-black text-sm outline-none focus:ring-2 focus:ring-teal-500" value={form.totalCost || ''} onChange={e => setField('totalCost', parseFloat(e.target.value) || 0)} placeholder="0" />
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full bg-slate-50 border-none rounded-2xl p-3.5 font-black text-sm outline-none focus:ring-2 focus:ring-teal-500"
+                    value={form.totalCost || ''}
+                    onChange={e => setField('totalCost', parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                  />
                 </div>
               </div>
 
               {/* Sesiones */}
               <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                 <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    <Calendar size={13} /> Sesiones ({form.sessions.length})
-                  </h4>
-                  <button type="button" onClick={addSes} className="bg-teal-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-teal-700 transition-all">
+                  <div>
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                      <Calendar size={13} /> Sesiones ({form.sessions.length})
+                    </h4>
+                    {/* ── precio por sesión en el formulario ── */}
+                    {form.totalCost > 0 && form.sessions.length > 0 && (
+                      <p className="text-[9px] font-black text-teal-600 mt-1 flex items-center gap-1">
+                        <DollarSign size={9} />
+                        {formatCOP(form.totalCost / form.sessions.length)} por sesión
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addSes}
+                    className="bg-teal-600 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-teal-700 transition-all"
+                  >
                     <Plus size={12} /> Agregar sesión
                   </button>
                 </div>
@@ -830,7 +849,15 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                   {form.sessions.map((ses, idx) => (
                     <div key={ses.id} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black text-teal-600 uppercase tracking-widest">Sesión {ses.sessionNumber}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[9px] font-black text-teal-600 uppercase tracking-widest">Sesión {ses.sessionNumber}</span>
+                          {/* ── precio por sesión en cada card del form ── */}
+                          {form.totalCost > 0 && form.sessions.length > 0 && (
+                            <span className="text-[9px] font-black text-slate-400 flex items-center gap-0.5">
+                              <DollarSign size={8} />{formatCOP(form.totalCost / form.sessions.length)}
+                            </span>
+                          )}
+                        </div>
                         {form.sessions.length > 1 && (
                           <button type="button" onClick={() => removeSes(idx)} className="text-slate-300 hover:text-red-500 transition-colors">
                             <Trash2 size={14} />
@@ -850,7 +877,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                         </div>
                         <div>
                           <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">Fecha</label>
-                          <input type="date" className="w-full bg-slate-50 rounded-xl p-2.5 text-[11px] font-bold border-none outline-none" value={ses.date || ''} onChange={e => updateSes(idx, 'date', e.target.value)} min={getTomorrow()}/>
+                          <input type="date" className="w-full bg-slate-50 rounded-xl p-2.5 text-[11px] font-bold border-none outline-none" value={ses.date || ''} onChange={e => updateSes(idx, 'date', e.target.value)} min={getTomorrow()} />
                         </div>
                         <div>
                           <label className="block text-[8px] font-black text-slate-400 uppercase mb-1">Hora</label>
@@ -871,7 +898,13 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                 <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest flex items-center gap-2">
                   <FileText size={12} /> Notas Clínicas
                 </label>
-                <textarea rows={3} className="w-full bg-slate-50 border-none rounded-2xl p-4 font-medium text-sm outline-none focus:ring-2 focus:ring-teal-500" value={form.notes || ''} onChange={e => setField('notes', e.target.value)} placeholder="Observaciones generales del tratamiento..." />
+                <textarea
+                  rows={3}
+                  className="w-full bg-slate-50 border-none rounded-2xl p-4 font-medium text-sm outline-none focus:ring-2 focus:ring-teal-500"
+                  value={form.notes || ''}
+                  onChange={e => setField('notes', e.target.value)}
+                  placeholder="Observaciones generales del tratamiento..."
+                />
               </div>
 
               <button
