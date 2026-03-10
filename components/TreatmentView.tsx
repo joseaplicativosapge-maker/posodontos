@@ -82,7 +82,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
   const getTomorrow = () => {
     const d = new Date();
-    d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate());
     return d.toISOString().split('T')[0];
   };
 
@@ -280,7 +280,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
   const getTomorrow = () => {
     const d = new Date();
-    d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate());
     return d.toISOString().split('T')[0];
   };
   const displayed = useMemo(() => {
