@@ -33,6 +33,7 @@ const S_CFG: Record<SessionStatus, { label: string; dot: string; bg: string }> =
   [SessionStatus.CANCELADA]:    { label: 'Cancelada',    dot: 'bg-red-500',     bg: 'bg-red-100'     },
   [SessionStatus.REPROGRAMADA]: { label: 'Reprogramada', dot: 'bg-yellow-500',  bg: 'bg-yellow-100'  },
   [SessionStatus.VENCIDA]:      { label: 'Vencida',      dot: 'bg-red-700',     bg: 'bg-red-200'     },
+  [SessionStatus.PAGADA]:       { label: 'Pagada',       dot: 'bg-violet-500',  bg: 'bg-violet-100'  },
 };
 
 const newSes = (num: number): TreatmentSession => ({
@@ -601,14 +602,14 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                           today.setHours(0, 0, 0, 0);
                           let effectiveStatus = ses.status;
 
-                          if (ses.date && ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA) {
+                          if (ses.date && ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA && ses.status !== SessionStatus.PAGADA) {
                             const sessionDate = new Date(ses.date);
                             sessionDate.setHours(0, 0, 0, 0);
                             if (sessionDate < today) effectiveStatus = SessionStatus.VENCIDA;
                           }
 
                           const sc          = S_CFG[effectiveStatus];
-                          const canSchedule = effectiveStatus !== SessionStatus.REALIZADA && effectiveStatus !== SessionStatus.CANCELADA;
+                          const canSchedule = effectiveStatus !== SessionStatus.REALIZADA && effectiveStatus !== SessionStatus.CANCELADA && effectiveStatus !== SessionStatus.PAGADA;
                           const hasDate     = !!ses.isScheduled;
 
                           return (

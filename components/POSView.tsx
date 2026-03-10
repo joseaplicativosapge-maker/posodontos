@@ -70,6 +70,7 @@ const S_CFG: Record<SessionStatus, { label: string; dot: string; bg: string }> =
   [SessionStatus.CANCELADA]:    { label: 'Cancelada',    dot: 'bg-red-500',     bg: 'bg-red-50'      },
   [SessionStatus.REPROGRAMADA]: { label: 'Reprogramada', dot: 'bg-yellow-500',  bg: 'bg-yellow-50'   },
   [SessionStatus.VENCIDA]:      { label: 'Vencida',      dot: 'bg-red-700',     bg: 'bg-red-100'     },
+  [SessionStatus.PAGADA]:       { label: 'Pagada',       dot: 'bg-violet-500',  bg: 'bg-violet-50'   },
 };
 
 const fmtCOP = (v: number) =>
@@ -87,17 +88,14 @@ const CustomerTreatmentPanel: React.FC<CustomerTreatmentPanelProps> = ({
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const customerTreatments = useMemo(() => {
-    console.log("Treatments:", treatments);
-
-    return treatments.filter(t =>
+  const customerTreatments = useMemo(() =>
+    treatments.filter(t =>
       t.customerId === customer.id &&
       t.status !== TreatmentStatus.CANCELADO
-    );
-  }, [treatments, customer.id]);
+    ), [treatments, customer.id]);
 
   if (customerTreatments.length === 0) return (
-    <div className="mx-4 mb-3 bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden mt-3">
+    <div className="mx-4 mb-3 bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden">
       <div className="px-4 py-2.5 flex items-center gap-2 bg-slate-200">
         <Stethoscope size={13} className="text-slate-400 shrink-0" />
         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sin tratamientos activos</p>
@@ -106,7 +104,7 @@ const CustomerTreatmentPanel: React.FC<CustomerTreatmentPanelProps> = ({
   );
 
   return (
-    <div className="mx-4 mb-3 bg-teal-50 border border-teal-100 rounded-2xl overflow-hidden mt-3">
+    <div className="mx-4 mb-3 bg-teal-50 border border-teal-100 rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="px-4 py-2.5 flex items-center gap-2 border-b border-teal-100 bg-teal-600">
         <Stethoscope size={13} className="text-white shrink-0" />
@@ -213,7 +211,7 @@ const CustomerTreatmentPanel: React.FC<CustomerTreatmentPanelProps> = ({
                       // Calcular estado efectivo (vencida si fecha pasada)
                       const today = new Date(); today.setHours(0,0,0,0);
                       let effStatus = ses.status;
-                      if (ses.date && ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA) {
+                      if (ses.date && ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA && ses.status !== SessionStatus.PAGADA) {
                         const d = new Date(ses.date); d.setHours(0,0,0,0);
                         if (d < today) effStatus = SessionStatus.VENCIDA;
                       }
@@ -241,6 +239,7 @@ const CustomerTreatmentPanel: React.FC<CustomerTreatmentPanelProps> = ({
                               effStatus === SessionStatus.CANCELADA    ? 'bg-red-500 text-white'     :
                               effStatus === SessionStatus.VENCIDA      ? 'bg-red-700 text-white'     :
                               effStatus === SessionStatus.REPROGRAMADA ? 'bg-yellow-500 text-white'  :
+                              effStatus === SessionStatus.PAGADA       ? 'bg-violet-500 text-white'  :
                               'bg-slate-400 text-white'
                             }`}>
                               {sc.label}
@@ -452,8 +451,7 @@ const TreatmentBillingModal: React.FC<TreatmentBillingModalProps> = ({
   return (
     <>
       <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[500] p-4">
-        <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in duration-200">
-
+        <div className="bg-white rounded-[2.5rem] w-full max-w-5xl shadow-2xl flex flex-col h-[92vh] overflow-hidden animate-in zoom-in duration-200">
           <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
             <div className="flex items-center gap-3">
               <div className="bg-teal-600 p-2 rounded-xl text-white shadow-lg"><Stethoscope size={18} /></div>
