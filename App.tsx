@@ -552,6 +552,7 @@ const App: React.FC = () => {
             {currentView === 'pos' && (
               <POSView 
                 isRegisterOpen={isRegisterOpen} 
+                treatments={branchContext.treatments}
                 products={branchContext.products} 
                 inventory={branchContext.inventory}
                 categories={branchContext.categories ?? []} 
