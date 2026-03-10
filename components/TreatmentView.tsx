@@ -58,7 +58,7 @@ const blank = (branchId: string): FormData => ({
 const formatCOP = (v: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v);
 
-// ─── Mini-modal agendar cita ──────────────────────────────────────────────────
+// ─── Mini-modal agendar / reagendar cita ─────────────────────────────────────
 interface ScheduleModalProps {
   treatment: PatientTreatment;
   session:   TreatmentSession;
@@ -72,14 +72,20 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   treatment, session, customer, branchId, onClose, onSaved,
 }) => {
   const { notify } = useNotification();
-  const [date,  setDate]  = useState(session.date  || '');
-  const [time,  setTime]  = useState(session.time  || '');
-  const [notes, setNotes] = useState(session.notes || '');
+  const isRescheduling = !!session.date;
+
+  const [date,   setDate]   = useState('');
+  const [time,   setTime]   = useState('');
+  const [notes,  setNotes]  = useState(session.notes || '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     if (!date) { notify('Selecciona una fecha', 'warning'); return; }
     if (!time) { notify('Selecciona una hora',  'warning'); return; }
+    if (isRescheduling && date === session.date && time === session.time) {
+      notify('Debes seleccionar una fecha u hora diferente para reagendar', 'warning');
+      return;
+    }
     setSaving(true);
     try {
       await dataService.saveReservation({
@@ -92,10 +98,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         time,
         seats:  1,
         status: 'PENDIENTE',
-        notes:  `Tratamiento: ${treatment.name} · ${session.label}${notes ? ` · ${notes}` : ''}`,
+        notes:  `${isRescheduling ? 'REAGENDADO' : 'Tratamiento'}: ${treatment.name} · ${session.label}${notes ? ` · ${notes}` : ''}`,
       });
       onSaved(session.id, date, time);
-      notify('Cita agendada correctamente', 'success');
+      notify(isRescheduling ? 'Cita reagendada correctamente' : 'Cita agendada correctamente', 'success');
       onClose();
     } catch {
       notify('Error al agendar la cita', 'error');
@@ -108,14 +114,15 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[400] p-4">
       <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl animate-in zoom-in duration-200 overflow-hidden">
 
-        {/* Header */}
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="bg-teal-600 p-2 rounded-xl text-white shadow-lg">
+            <div className={`${isRescheduling ? 'bg-amber-500' : 'bg-teal-600'} p-2 rounded-xl text-white shadow-lg`}>
               <CalendarPlus size={18} />
             </div>
             <div>
-              <h3 className="text-base font-black uppercase tracking-tighter text-slate-800">Agendar Cita</h3>
+              <h3 className="text-base font-black uppercase tracking-tighter text-slate-800">
+                {isRescheduling ? 'Reagendar Cita' : 'Agendar Cita'}
+              </h3>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
                 {session.label} · {treatment.name}
               </p>
@@ -128,7 +135,21 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
         <div className="p-6 space-y-4">
 
-          {/* Paciente */}
+          {isRescheduling && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-start gap-3">
+              <Calendar size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Cita anterior</p>
+                <p className="text-sm font-bold text-amber-700 mt-0.5">
+                  {session.date} · {session.time}
+                </p>
+                <p className="text-[9px] text-amber-500 font-medium mt-0.5">
+                  Selecciona una nueva fecha y hora para reagendar
+                </p>
+              </div>
+            </div>
+          )}
+
           {customer && (
             <div className="bg-teal-50 border border-teal-100 rounded-2xl p-4 flex items-center gap-3">
               <div className="bg-teal-600 p-2 rounded-xl text-white">
@@ -143,14 +164,21 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             </div>
           )}
 
-          {/* Fecha y hora */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[9px] font-black text-slate-400 uppercase mb-1.5 tracking-widest flex items-center gap-1">
-                <Calendar size={10} /> Fecha *
+                <Calendar size={10} /> {isRescheduling ? 'Nueva Fecha *' : 'Fecha *'}
               </label>
               <input
                 type="date"
+                min={isRescheduling && session.date
+                    ? (() => {
+                        const d = new Date(session.date);
+                        d.setDate(d.getDate() + 1);
+                        return d.toISOString().split('T')[0];
+                        })()
+                    : new Date().toISOString().split('T')[0]
+                }
                 className="w-full bg-slate-50 rounded-2xl p-3 text-sm font-bold border-none outline-none focus:ring-2 focus:ring-teal-500"
                 value={date}
                 onChange={e => setDate(e.target.value)}
@@ -158,7 +186,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             </div>
             <div>
               <label className="block text-[9px] font-black text-slate-400 uppercase mb-1.5 tracking-widest flex items-center gap-1">
-                <Clock size={10} /> Hora *
+                <Clock size={10} /> {isRescheduling ? 'Nueva Hora *' : 'Hora *'}
               </label>
               <input
                 type="time"
@@ -169,7 +197,6 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             </div>
           </div>
 
-          {/* Doctor */}
           <div className="bg-slate-50 rounded-2xl p-3 flex items-center gap-2">
             <Stethoscope size={14} className="text-slate-400 shrink-0" />
             <div>
@@ -178,21 +205,19 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             </div>
           </div>
 
-          {/* Notas adicionales */}
           <div>
             <label className="block text-[9px] font-black text-slate-400 uppercase mb-1.5 tracking-widest flex items-center gap-1">
-              <FileText size={10} /> Notas adicionales
+              <FileText size={10} /> {isRescheduling ? 'Motivo del reagendamiento' : 'Notas adicionales'}
             </label>
             <textarea
               rows={2}
               className="w-full bg-slate-50 border-none rounded-2xl p-3 font-medium text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-none"
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Indicaciones especiales..."
+              placeholder={isRescheduling ? 'Ej: Paciente solicitó cambio de horario...' : 'Indicaciones especiales...'}
             />
           </div>
 
-          {/* Botones */}
           <div className="flex gap-3 pt-1">
             <button
               type="button"
@@ -205,10 +230,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="flex-2 flex-grow-[2] bg-teal-600 text-white font-black py-4 rounded-[2rem] shadow-lg uppercase tracking-widest text-[10px] hover:bg-teal-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              className={`flex-2 flex-grow-[2] ${isRescheduling ? 'bg-amber-500 hover:bg-amber-600' : 'bg-teal-600 hover:bg-teal-700'} text-white font-black py-4 rounded-[2rem] shadow-lg uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 disabled:opacity-60`}
             >
               <CalendarPlus size={14} />
-              {saving ? 'Agendando...' : 'Confirmar Cita'}
+              {saving ? 'Guardando...' : isRescheduling ? 'Confirmar Reagendamiento' : 'Confirmar Cita'}
             </button>
           </div>
         </div>
@@ -235,8 +260,6 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
   const [showDrop,     setShowDrop]     = useState(false);
   const [saving,       setSaving]       = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
-
-  // ── Agendar cita ──
   const [scheduleTarget, setScheduleTarget] = useState<{
     treatment: PatientTreatment;
     session:   TreatmentSession;
@@ -364,18 +387,17 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
     }
   };
 
-  // Cuando se agenda la cita, actualizar la sesión local con fecha/hora
   const handleScheduleSaved = async (sesId: string, date: string, time: string) => {
     if (!scheduleTarget) return;
     const t = scheduleTarget.treatment;
     const updatedSessions = t.sessions.map(s =>
-      s.id === sesId ? { ...s, date, time, status: SessionStatus.PROGRAMADA } : s
+      s.id === sesId ? { ...s, date, time, status: SessionStatus.REPROGRAMADA } : s
     );
     const now = new Date().toISOString();
     try {
       await onUpdateTreatment({ ...t, sessions: updatedSessions, updatedAt: now });
     } catch {
-      // La reservación ya se creó, el error de actualización es secundario
+      // reservación ya creada, error secundario
     }
   };
 
@@ -545,6 +567,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                         {t.sessions.map((ses, idx) => {
                           const sc = S_CFG[ses.status];
                           const canSchedule = ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA;
+                          const hasDate = !!ses.date;
                           return (
                             <div key={ses.id} className="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-slate-100">
                               <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
@@ -566,16 +589,19 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
                                 {ses.notes && <p className="text-[9px] text-slate-400 italic mt-1">{ses.notes}</p>}
                               </div>
 
-                              {/* ── Botón Agendar ── */}
                               {canSchedule && (
                                 <button
                                   type="button"
                                   onClick={() => setScheduleTarget({ treatment: t, session: ses })}
-                                  className="shrink-0 flex items-center gap-1.5 bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white border border-teal-200 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
-                                  title="Agendar cita para esta sesión"
+                                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border ${
+                                    hasDate
+                                      ? 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white border-amber-200'
+                                      : 'bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white border-teal-200'
+                                  }`}
+                                  title={hasDate ? 'Reagendar esta sesión' : 'Agendar cita para esta sesión'}
                                 >
                                   <CalendarPlus size={12} />
-                                  {ses.date ? 'Reagendar' : 'Agendar'}
+                                  {hasDate ? 'Reagendar' : 'Agendar'}
                                 </button>
                               )}
                             </div>
@@ -599,7 +625,7 @@ export const TreatmentView: React.FC<TreatmentViewProps> = ({
         </div>
       )}
 
-      {/* MODAL AGENDAR CITA */}
+      {/* MODAL AGENDAR / REAGENDAR */}
       {scheduleTarget && (
         <ScheduleModal
           treatment={scheduleTarget.treatment}
