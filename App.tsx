@@ -34,9 +34,7 @@ import {
 } from './types';
 import { AccountingAccount, AccountingVoucher, AccountingEntry } from './types_accounting';
 import { TreatmentView } from './components/TreatmentView';
-// ── NUEVO ──────────────────────────────────────────────────────────────────────
 import { FollowView } from './components/FollowView';
-// ──────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_LOYALTY: LoyaltyConfig = {
   enabled: false,
@@ -71,11 +69,9 @@ const App: React.FC = () => {
   const [selectedSeat, setSelectedSeat] = useState<number | undefined>(undefined);
 
   const urlSegments = window.location.pathname.split('/');
-  
   const menuIdx = urlSegments.indexOf('menu');
   const isPublicMenuRoute = menuIdx !== -1;
   const publicMenuBranchId = isPublicMenuRoute ? urlSegments[menuIdx + 1] : null;
-
   const resIdx = urlSegments.indexOf('reserva');
   const isPublicReservationRoute = resIdx !== -1;
   const publicReservationBranchId = isPublicReservationRoute ? urlSegments[resIdx + 1] : null;
@@ -92,13 +88,10 @@ const App: React.FC = () => {
               await branchContext.initializePublicContext(companyId, branchId);
             }
           }
-        } catch (e) {
-          console.error("Error cargando contexto público");
-        }
+        } catch (e) { console.error("Error cargando contexto público"); }
         setLoading(false);
         return;
       }
-
       const token = localStorage.getItem('odontos_token');
       if (token) {
         try {
@@ -109,46 +102,38 @@ const App: React.FC = () => {
             if (authData.user.branchId) branchContext.setBranchId(authData.user.branchId);
             await loadSettings(authData.user.companyId);
           }
-        } catch (e) {
-          authService.logout();
-        }
+        } catch (e) { authService.logout(); }
       }
       setLoading(false);
     };
     initApp();
   }, [isPublicMenuRoute, isPublicReservationRoute]);
 
-  // ── Loaders de datos ──────────────────────────────────────────────────────
+  // ── Loaders ────────────────────────────────────────────────────────────────
 
   const loadCustomersData = async (companyId?: string) => {
     try {
       const res = await dataService.getCustomers(companyId);
       setCustomers(res.data || []);
-    } catch (error) {
-      console.error("Error cargando clientes");
-    }
+    } catch { console.error("Error cargando clientes"); }
   };
 
   const loadUsersAndRoles = async (companyId?: string) => {
     try {
       const [rolesRes, usersRes] = await Promise.all([
         dataService.getRoles(),
-        dataService.getUsers(companyId)
+        dataService.getUsers(companyId),
       ]);
       setRoleDefinitions(rolesRes.data || []);
       setUsers(usersRes.data || []);
-    } catch (error) {
-      console.error("Error cargando usuarios y roles");
-    }
+    } catch { console.error("Error cargando usuarios y roles"); }
   };
 
   const loadSettings = async (companyId?: string) => {
     try {
       const res = await dataService.getSettings(companyId);
       setSettings(res.data);
-    } catch (error) {
-      console.error("Error cargando configuración");
-    }
+    } catch { console.error("Error cargando configuración"); }
   };
 
   const handleLogin = async (user: UserType) => {
@@ -158,16 +143,15 @@ const App: React.FC = () => {
       branchContext.setBranchId(user.branchId);
     } else {
       const currentBranches = branchContext.branches;
-      if (currentBranches && currentBranches.length > 0) {
+      if (currentBranches && currentBranches.length > 0)
         branchContext.setBranchId(currentBranches[0].id);
-      }
     }
     if (user.companyId) branchContext.setCompanyId(user.companyId);
     await branchContext.initializeContext(user);
     await loadSettings(user.companyId);
   };
 
-  // ── Cargar datos por vista ────────────────────────────────────────────────
+  // ── Cargar datos por vista ──────────────────────────────────────────────────
 
   useEffect(() => {
     if (!currentUser) return;
@@ -184,9 +168,6 @@ const App: React.FC = () => {
           break;
         case 'operational_mgmt':
         case 'treatments':
-          await loadCustomersData(currentUser.companyId);
-          break;
-        // ── NUEVO: follow solo necesita que branchId esté disponible ──
         case 'follow':
           await loadCustomersData(currentUser.companyId);
           break;
@@ -198,14 +179,14 @@ const App: React.FC = () => {
     loadDataForView();
   }, [currentView, currentUser]);
 
-  // ── KDS ───────────────────────────────────────────────────────────────────
+  // ── KDS ────────────────────────────────────────────────────────────────────
 
   const handleUpdateOrderItems = async (orderId: string, area: ProductionArea | 'ALL') => {
     try {
       const order = branchContext.orders.find(o => o.id === orderId);
       if (!order) return;
-      const itemsToUpdate = order.items.filter(it => 
-        (area === 'ALL' || it.product.productionArea === area) && 
+      const itemsToUpdate = order.items.filter(it =>
+        (area === 'ALL' || it.product.productionArea === area) &&
         it.status !== ItemStatus.READY
       );
       if (itemsToUpdate.length === 0) {
@@ -224,37 +205,75 @@ const App: React.FC = () => {
     }
   };
 
-  // ── Tratamientos ──────────────────────────────────────────────────────────
+  // ── Tratamientos ───────────────────────────────────────────────────────────
 
   const loadTreatmentsData = async (branchId?: string) => {
     try {
       const res = await dataService.getTreatments(branchId);
       setTreatments(res.data || []);
-    } catch (error) {
-      console.error("Error cargando tratamientos");
-    }
+    } catch { console.error("Error cargando tratamientos"); }
   };
 
   const handleAddTreatment = async (t: PatientTreatment) => {
     await dataService.saveTreatment({ ...t, isNew: true, companyId: branchContext.currentCompanyId });
     await loadTreatmentsData(branchContext.currentBranchId);
   };
-
   const handleUpdateTreatment = async (t: PatientTreatment) => {
     await dataService.saveTreatment(t);
     await loadTreatmentsData(branchContext.currentBranchId);
   };
-
   const handleDeleteTreatment = async (id: string) => {
     await dataService.deleteTreatment(id);
     await loadTreatmentsData(branchContext.currentBranchId);
   };
 
-  // ── Caja ──────────────────────────────────────────────────────────────────
+  // ── Clientes ───────────────────────────────────────────────────────────────
 
-  const isRegisterOpen = useMemo(() => {
-    return branchContext.registers.some(r => r.isOpen);
-  }, [branchContext.registers]);
+  /**
+   * onAddCustomer: crea un cliente nuevo en la API y recarga la lista.
+   */
+  const handleAddCustomer = async (c: Customer) => {
+    await dataService.saveCustomer(c);
+    await loadCustomersData(branchContext.currentCompanyId);
+  };
+
+  /**
+   * onUpdateCustomer: detecta si el objeto trae clinicalHistory.
+   * - Si trae clinicalHistory → llama la ruta dedicada PUT /customers/:id/clinical-history
+   *   y actualiza el estado local directamente (sin recargar toda la lista).
+   * - Si no trae clinicalHistory → llama PUT /customers/:id normal y recarga.
+   */
+  const handleUpdateCustomer = async (c: Customer) => {
+    const { clinicalHistory, ...rest } = c as any;
+
+    if (clinicalHistory !== undefined) {
+      // Guardar historia clínica via ruta dedicada
+      try {
+        await dataService.saveClinicalHistory(c.id, clinicalHistory);
+        // Actualizar el cliente en el estado local sin recargar toda la lista
+        setCustomers(prev =>
+          prev.map(existing =>
+            existing.id === c.id
+              ? { ...existing, clinicalHistory }
+              : existing
+          )
+        );
+      } catch (e) {
+        console.error("Error guardando historia clínica", e);
+        throw e; // propagar para que CustomersView muestre el error
+      }
+    } else {
+      // Actualización normal de datos del cliente
+      await dataService.saveCustomer(c);
+      await loadCustomersData(branchContext.currentCompanyId);
+    }
+  };
+
+  // ── Caja ───────────────────────────────────────────────────────────────────
+
+  const isRegisterOpen = useMemo(() =>
+    branchContext.registers.some(r => r.isOpen),
+  [branchContext.registers]);
 
   const activeSessionForUser = useMemo(() => {
     const openRegister = branchContext.registers.find(r => r.isOpen && r.currentUserId === currentUser?.id);
@@ -265,7 +284,7 @@ const App: React.FC = () => {
       userName:      currentUser?.name || '',
       openingAmount: openRegister.sessions?.[0]?.openingAmount ?? 0,
       totalSales:    openRegister.sessions?.[0]?.totalSales ?? 0,
-      startTime:     new Date()
+      startTime:     new Date(),
     } as RegisterSession;
   }, [branchContext.registers, branchContext.orders, currentUser]);
 
@@ -293,13 +312,12 @@ const App: React.FC = () => {
 
   const activePermissions = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === Role.SUPER_ADMIN) {
+    if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === Role.SUPER_ADMIN)
       return Object.values(Permission);
-    }
     return roleDefinitions.find(r => r.role === currentUser.role)?.permissions || [];
   }, [currentUser, roleDefinitions]);
 
-  // ── POS ───────────────────────────────────────────────────────────────────
+  // ── POS ────────────────────────────────────────────────────────────────────
 
   const handleSendOrder = async (
     items: any[], type: OrderType, customer?: Customer,
@@ -320,11 +338,11 @@ const App: React.FC = () => {
         tax: tax || 0,
         impoconsumoAmount: impoconsumo || 0,
         total: (subtotal || 0) + (tax || 0) + (impoconsumo || 0),
-        deliveryAddress
+        deliveryAddress,
       });
       notify("Comanda enviada", "success");
       branchContext.refreshBranchData();
-    } catch (e) { notify("Error al enviar comanda", "error"); }
+    } catch { notify("Error al enviar comanda", "error"); }
   };
 
   const formatCurrency = (val: number) =>
@@ -334,81 +352,53 @@ const App: React.FC = () => {
     const branch      = branchContext.branches.find(b => b.id === branchContext.currentBranchId);
     const register    = branchContext.registers.find(r => r.isOpen && r.currentUserId === currentUser?.id);
     const companyName = settings?.name || 'OdontOS SaaS';
-    
     const printWindow = window.open('', '_blank', 'width=300,height=600');
-    if (!printWindow) {
-      notify("El navegador bloqueó la ventana de impresión", "warning");
-      return;
-    }
-
+    if (!printWindow) { notify("El navegador bloqueó la ventana de impresión", "warning"); return; }
     const itemsHtml = saleData.items.map((it: any) => {
       const product = branchContext.products.find(p => p.id === it.productId);
-      return `
-        <tr>
-          <td style="padding: 2px 0;">${it.quantity} x ${product?.name || 'PRODUCTO'}</td>
-          <td align="right" style="padding: 2px 0;">${formatCurrency(it.price * it.quantity)}</td>
-        </tr>
-      `;
+      return `<tr><td style="padding:2px 0;">${it.quantity} x ${product?.name || 'PRODUCTO'}</td><td align="right" style="padding:2px 0;">${formatCurrency(it.price * it.quantity)}</td></tr>`;
     }).join('');
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Ticket POS - ${branch?.name}</title>
-          <style>
-            @page { margin: 0; }
-            body { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 72mm; padding: 4mm; margin: 0; color: #000; }
-            .center { text-align: center; }
-            .bold { font-weight: bold; }
-            .header { margin-bottom: 3mm; }
-            .logo { max-width: 40mm; height: auto; margin-bottom: 2mm; display: block; margin-left: auto; margin-right: auto; }
-            .company-name { font-size: 14px; font-weight: bold; text-transform: uppercase; margin-bottom: 1mm; }
-            .branch-name { font-size: 12px; font-weight: bold; margin-bottom: 1mm; }
-            .divider { border-top: 1px dashed #000; margin: 2mm 0; }
-            table { width: 100%; border-collapse: collapse; }
-            .total-row { font-size: 13px; font-weight: bold; }
-            .footer { margin-top: 4mm; font-size: 9px; line-height: 1.2; }
-          </style>
-        </head>
-        <body>
-          <div class="header center">
-            ${branch?.logoUrl ? `<img src="${branch.logoUrl}" class="logo" alt="Logo"/>` : ''}
-            <div class="company-name">${companyName}</div>
-            <div class="branch-name">Sede: ${branch?.name || 'Principal'}</div>
-            <div>${branch?.address || ''}</div>
-            <div>NIT: ${branch?.nit || settings?.taxId || ''}</div>
-            <div>TEL: ${branch?.phone || ''}</div>
-          </div>
-          <div class="divider"></div>
-          <div class="bold">FACTURA POS: #${saleData.orderId?.slice(-6).toUpperCase() || 'VENTA-DIR'}</div>
-          <div>FECHA: ${new Date().toLocaleString()}</div>
-          <div>ATENDIDO POR: ${currentUser?.name || 'SISTEMA'}</div>
-          <div class="divider"></div>
-          <table>
-            <thead><tr><th align="left">DESCRIPCIÓN</th><th align="right">TOTAL</th></tr></thead>
-            <tbody>${itemsHtml}</tbody>
-          </table>
-          <div class="divider"></div>
-          <table style="width: 100%;">
-            <tr><td>SUBTOTAL</td><td align="right">${formatCurrency(saleData.subtotal)}</td></tr>
-            <tr><td>IVA (19%)</td><td align="right">${formatCurrency(saleData.tax)}</td></tr>
-            ${saleData.impoconsumoAmount > 0 ? `<tr><td>IMPOCONSUMO (8%)</td><td align="right">${formatCurrency(saleData.impoconsumoAmount)}</td></tr>` : ''}
-            <tr class="total-row"><td>TOTAL A PAGAR</td><td align="right">${formatCurrency(saleData.total)}</td></tr>
-          </table>
-          <div class="divider"></div>
-          <div>MÉTODO DE PAGO: ${saleData.paymentMethod}</div>
-          <div>EFECTIVO RECIBIDO: ${formatCurrency(saleData.receivedAmount || saleData.total)}</div>
-          <div>CAMBIO: ${formatCurrency(saleData.changeAmount || 0)}</div>
-          <div class="footer center">
-            <p>${register?.ticketFooter || '¡MUCHAS GRACIAS POR SU PREFERENCIA!'}</p>
-            <p>SISTEMA POS APGE ODONTOS v2.5<br/>Cloud Powered Infrastructure</p>
-          </div>
-          <script>
-            window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); };
-          </script>
-        </body>
-      </html>
-    `);
+    printWindow.document.write(`<html><head><title>Ticket POS</title><style>
+      @page{margin:0}body{font-family:'Courier New',monospace;font-size:11px;width:72mm;padding:4mm;margin:0;color:#000}
+      .center{text-align:center}.bold{font-weight:bold}
+      .divider{border-top:1px dashed #000;margin:2mm 0}
+      table{width:100%;border-collapse:collapse}.total-row{font-size:13px;font-weight:bold}
+      .footer{margin-top:4mm;font-size:9px;line-height:1.2}
+      .company-name{font-size:14px;font-weight:bold;text-transform:uppercase;margin-bottom:1mm}
+      .branch-name{font-size:12px;font-weight:bold;margin-bottom:1mm}
+      .logo{max-width:40mm;height:auto;margin-bottom:2mm;display:block;margin-left:auto;margin-right:auto}
+    </style></head><body>
+      <div class="header center">
+        ${branch?.logoUrl ? `<img src="${branch.logoUrl}" class="logo" alt="Logo"/>` : ''}
+        <div class="company-name">${companyName}</div>
+        <div class="branch-name">Sede: ${branch?.name || 'Principal'}</div>
+        <div>${branch?.address || ''}</div>
+        <div>NIT: ${branch?.nit || settings?.taxId || ''}</div>
+        <div>TEL: ${branch?.phone || ''}</div>
+      </div>
+      <div class="divider"></div>
+      <div class="bold">FACTURA POS: #${saleData.orderId?.slice(-6).toUpperCase() || 'VENTA-DIR'}</div>
+      <div>FECHA: ${new Date().toLocaleString()}</div>
+      <div>ATENDIDO POR: ${currentUser?.name || 'SISTEMA'}</div>
+      <div class="divider"></div>
+      <table><thead><tr><th align="left">DESCRIPCIÓN</th><th align="right">TOTAL</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+      <div class="divider"></div>
+      <table style="width:100%">
+        <tr><td>SUBTOTAL</td><td align="right">${formatCurrency(saleData.subtotal)}</td></tr>
+        <tr><td>IVA (19%)</td><td align="right">${formatCurrency(saleData.tax)}</td></tr>
+        ${saleData.impoconsumoAmount > 0 ? `<tr><td>IMPOCONSUMO (8%)</td><td align="right">${formatCurrency(saleData.impoconsumoAmount)}</td></tr>` : ''}
+        <tr class="total-row"><td>TOTAL A PAGAR</td><td align="right">${formatCurrency(saleData.total)}</td></tr>
+      </table>
+      <div class="divider"></div>
+      <div>MÉTODO DE PAGO: ${saleData.paymentMethod}</div>
+      <div>EFECTIVO RECIBIDO: ${formatCurrency(saleData.receivedAmount || saleData.total)}</div>
+      <div>CAMBIO: ${formatCurrency(saleData.changeAmount || 0)}</div>
+      <div class="footer center">
+        <p>${register?.ticketFooter || '¡MUCHAS GRACIAS POR SU PREFERENCIA!'}</p>
+        <p>SISTEMA POS APGE ODONTOS v2.5<br/>Cloud Powered Infrastructure</p>
+      </div>
+      <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);};</script>
+    </body></html>`);
     printWindow.document.close();
   }, [branchContext, currentUser, settings, notify]);
 
@@ -419,23 +409,17 @@ const App: React.FC = () => {
     impoconsumo?: number, deliveryAddress?: string, tableId?: string
   ) => {
     try {
-      console.log("🚀 Items recibidos en pago:", items);
       const saleData = {
-        orderId:          existingOrderId,
-        branchId:         branchContext.currentBranchId,
-        items:            items.map(i => ({ productId: i.product.id, quantity: i.quantity, price: i.product.price })),
-        paymentMethod:    method,
-        status:           method ? OrderStatus.COMPLETED : OrderStatus.PENDING,
-        subtotal:         subtotal || (total / 1.19),
-        tax:              tax || (total - (total / 1.19)),
-        impoconsumoAmount:impoconsumo || 0,
-        total,
-        redeemedPoints,
-        receivedAmount,
-        changeAmount,
-        deliveryAddress,
-        tableId,
-        isSentToDIAN: true
+        orderId: existingOrderId,
+        branchId: branchContext.currentBranchId,
+        items: items.map(i => ({ productId: i.product.id, quantity: i.quantity, price: i.product.price })),
+        paymentMethod: method,
+        status: method ? OrderStatus.COMPLETED : OrderStatus.PENDING,
+        subtotal: subtotal || (total / 1.19),
+        tax: tax || (total - (total / 1.19)),
+        impoconsumoAmount: impoconsumo || 0,
+        total, redeemedPoints, receivedAmount, changeAmount, deliveryAddress, tableId,
+        isSentToDIAN: true,
       };
       await dataService.processSale(saleData);
       printOrderTicket(saleData);
@@ -443,7 +427,7 @@ const App: React.FC = () => {
     } catch (error: any) { notify("Error: " + error.message, "error"); }
   };
 
-  // ── Loading screen ────────────────────────────────────────────────────────
+  // ── Loading / rutas públicas ───────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -453,44 +437,32 @@ const App: React.FC = () => {
     );
   }
 
-  // ── Rutas públicas ────────────────────────────────────────────────────────
-
   if (isPublicReservationRoute && publicReservationBranchId) {
-    const targetBranch = branchContext.branches.find(
-      b => String(b.id) === String(publicReservationBranchId)
-    );
+    const targetBranch = branchContext.branches.find(b => String(b.id) === String(publicReservationBranchId));
     if (targetBranch) return <PublicReservation branch={targetBranch} />;
-    if (branchContext.branches.length > 0) {
-      return (
-        <div className="h-screen flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-          Sucursal no encontrada
-        </div>
-      );
-    }
+    if (branchContext.branches.length > 0)
+      return <div className="h-screen flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs">Sucursal no encontrada</div>;
   }
-  
+
   if (isPublicMenuRoute && publicMenuBranchId) {
     const targetBranch = branchContext.branches.find(b => b.id === publicMenuBranchId);
-    if (publicMenuBranchId) {
-      return <PublicMenu products={branchContext.products} branch={targetBranch} />;
-    }
+    if (publicMenuBranchId) return <PublicMenu products={branchContext.products} branch={targetBranch} />;
   }
 
   // ── App principal ─────────────────────────────────────────────────────────
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      
       {currentUser && (
-        <Sidebar 
-          currentView={currentView} 
-          onChangeView={setCurrentView} 
-          onLogout={() => { authService.logout(); setCurrentUser(null); }} 
-          userRole={currentUser.role as Role} 
-          userPermissions={activePermissions} 
-          branches={branchContext.branches} 
-          currentBranchId={branchContext.currentBranchId} 
-          onBranchChange={branchContext.setBranchId} 
+        <Sidebar
+          currentView={currentView}
+          onChangeView={setCurrentView}
+          onLogout={() => { authService.logout(); setCurrentUser(null); }}
+          userRole={currentUser.role as Role}
+          userPermissions={activePermissions}
+          branches={branchContext.branches}
+          currentBranchId={branchContext.currentBranchId}
+          onBranchChange={branchContext.setBranchId}
           isMobileOpen={isMobileMenuOpen}
           onCloseMobile={() => setIsMobileMenuOpen(false)}
         />
@@ -498,390 +470,213 @@ const App: React.FC = () => {
 
       <div className="flex flex-col flex-1 min-w-0">
         <main className="flex-1 h-full overflow-hidden relative">
-
-          {/* Barra de carga de sucursal */}
           {branchContext.isLoadingBranch && (
             <div className="absolute top-0 left-0 w-full h-1 bg-brand-500/20 z-[100]">
               <div className="h-full bg-brand-600 animate-[loading_1.5s_infinite_linear] w-1/3"></div>
             </div>
           )}
-          
+
           {!currentUser ? (
             <LoginView onLogin={handleLogin} />
           ) : (
             <>
-              {/* Dashboard */}
               {currentView === 'dashboard' && (
-                <Dashboard 
-                  products={branchContext.products} 
-                  inventory={branchContext.inventory} 
-                  orders={branchContext.orders} 
-                  ordersCompleted={branchContext.ordersCompleted}
-                  expenses={branchContext.expenses} 
-                  activeSession={activeSessionForUser} 
-                  registers={branchContext.registers} 
-                  onOpenRegister={handleOpenRegister} 
-                  onCloseRegister={handleCloseRegister} 
-                  currentUser={currentUser} 
+                <Dashboard
+                  products={branchContext.products} inventory={branchContext.inventory}
+                  orders={branchContext.orders} ordersCompleted={branchContext.ordersCompleted}
+                  expenses={branchContext.expenses} activeSession={activeSessionForUser}
+                  registers={branchContext.registers} onOpenRegister={handleOpenRegister}
+                  onCloseRegister={handleCloseRegister} currentUser={currentUser}
                   stats={branchContext.stats}
                 />
               )}
 
-              {/* POS */}
               {currentView === 'pos' && (
-                <POSView 
-                  isRegisterOpen={isRegisterOpen} 
-                  treatments={branchContext.treatments}
-                  products={branchContext.products} 
-                  inventory={branchContext.inventory}
-                  categories={branchContext.categories ?? []} 
-                  onProcessPayment={handleProcessPayment} 
-                  onSendOrder={handleSendOrder} 
-                  onCancelOrder={() => {}} 
-                  customers={customers} 
-                  selectedTable={selectedTable} 
-                  selectedSeat={selectedSeat} 
-                  onSelectTable={(t, s) => { setSelectedTable(t); setSelectedSeat(s); }} 
-                  tables={branchContext.tables} 
-                  orders={branchContext.orders} 
-                  taxRate={settings?.taxRate || 0.19} 
-                  impoconsumoConfig={settings?.impoconsumo || DEFAULT_IMPOCONSUMO} 
-                  userRole={currentUser.role as Role} 
-                  loyaltyConfig={settings?.loyalty || DEFAULT_LOYALTY} 
-                  onAddCustomer={loadCustomersData} 
-                  onUpdateCustomer={loadCustomersData} 
-                  onChangeTable={() => {}} 
-                  onViewTables={() => setCurrentView('tables')} 
+                <POSView
+                  isRegisterOpen={isRegisterOpen} treatments={branchContext.treatments}
+                  products={branchContext.products} inventory={branchContext.inventory}
+                  categories={branchContext.categories ?? []} onProcessPayment={handleProcessPayment}
+                  onSendOrder={handleSendOrder} onCancelOrder={() => {}} customers={customers}
+                  selectedTable={selectedTable} selectedSeat={selectedSeat}
+                  onSelectTable={(t, s) => { setSelectedTable(t); setSelectedSeat(s); }}
+                  tables={branchContext.tables} orders={branchContext.orders}
+                  taxRate={settings?.taxRate || 0.19} impoconsumoConfig={settings?.impoconsumo || DEFAULT_IMPOCONSUMO}
+                  userRole={currentUser.role as Role} loyaltyConfig={settings?.loyalty || DEFAULT_LOYALTY}
+                  onAddCustomer={loadCustomersData} onUpdateCustomer={loadCustomersData}
+                  onChangeTable={() => {}} onViewTables={() => setCurrentView('tables')}
                   onOpenRegisterRequest={() => setCurrentView('dashboard')}
-                  posConfig={{} as any} 
-                  currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)} 
-                  onPatchOrder={(id, up) => dataService.patchOrder(id, up).then(() => branchContext.refreshBranchData())} 
+                  posConfig={{} as any}
+                  currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)}
+                  onPatchOrder={(id, up) => dataService.patchOrder(id, up).then(() => branchContext.refreshBranchData())}
                 />
               )}
 
-              {/* Sillas */}
               {currentView === 'tables' && (
-                <TablesView 
-                  currentBranchId={branchContext.currentBranchId}
-                  tables={branchContext.tables} 
-                  onSelectTable={(t, s) => { setSelectedTable(t); setSelectedSeat(s); setCurrentView('pos'); }} 
-                  onAddTable={async (table) => {
-                    await dataService.saveTable(table);
-                    notify("Silla agregada correctamente a la sucursal", "success");
-                    branchContext.refreshBranchData();
-                  }} 
-                  onUpdateTable={async (table) => {
-                    await dataService.saveTable(table);
-                    notify("Silla actualizada exitosamente", "success");
-                    branchContext.refreshBranchData();
-                  }} 
-                  isRegisterOpen={isRegisterOpen} 
-                  onOpenRegisterRequest={() => setCurrentView('dashboard')}
+                <TablesView
+                  currentBranchId={branchContext.currentBranchId} tables={branchContext.tables}
+                  onSelectTable={(t, s) => { setSelectedTable(t); setSelectedSeat(s); setCurrentView('pos'); }}
+                  onAddTable={async (table) => { await dataService.saveTable(table); notify("Silla agregada", "success"); branchContext.refreshBranchData(); }}
+                  onUpdateTable={async (table) => { await dataService.saveTable(table); notify("Silla actualizada", "success"); branchContext.refreshBranchData(); }}
+                  isRegisterOpen={isRegisterOpen} onOpenRegisterRequest={() => setCurrentView('dashboard')}
                 />
               )}
 
-              {/* KDS */}
               {currentView === 'kds' && (
                 <KDSView
                   orders={branchContext.orders}
                   onUpdateOrderStatus={(id, s) => dataService.updateOrderStatus(id, s).then(() => branchContext.refreshBranchData())}
-                  onUpdateOrderItems={handleUpdateOrderItems}
-                  userRole={currentUser.role as Role}
+                  onUpdateOrderItems={handleUpdateOrderItems} userRole={currentUser.role as Role}
                 />
               )}
 
-              {/* Inventario */}
               {currentView === 'warehouse' && (
-                <InventoryView 
-                  movements={branchContext.movements} 
-                  currentBranchId={branchContext.currentBranchId}
-                  currentCompanyId={branchContext.currentCompanyId}
-                  products={branchContext.products} 
-                  inventory={branchContext.inventory} 
-                  suppliers={branchContext.suppliers} 
-                  categories={branchContext.categories ?? []} 
-                  onAddInventory={async (item) => {
-                    try {
-                      const res = await dataService.saveInventoryItem({ ...item, branchId: branchContext.currentBranchId }, false);
-                      await branchContext.refreshBranchData();
-                      return res.data || item;
-                    } catch (e: any) { notify("Fallo al guardar material en API", "error"); }
-                  }} 
-                  onUpdateInventory={async (item) => {
-                    try {
-                      const res = await dataService.saveInventoryItem(item, true);
-                      await branchContext.refreshBranchData();
-                      return res.data || item;
-                    } catch (e: any) { notify("Fallo al actualizar material en API", "error"); }
-                  }} 
-                  onAddProduct={async (p) => { 
-                    const res = await dataService.saveProduct({ ...p, isNew: true });
-                    await branchContext.refreshBranchData();
-                    return res.data || p;
-                  }} 
-                  onUpdateProduct={async (p) => {  
-                    const res = await dataService.saveProduct(p); 
-                    await branchContext.refreshBranchData();
-                    return res.data || p;
-                  }} 
+                <InventoryView
+                  movements={branchContext.movements} currentBranchId={branchContext.currentBranchId}
+                  currentCompanyId={branchContext.currentCompanyId} products={branchContext.products}
+                  inventory={branchContext.inventory} suppliers={branchContext.suppliers}
+                  categories={branchContext.categories ?? []}
+                  onAddInventory={async (item) => { try { const res = await dataService.saveInventoryItem({ ...item, branchId: branchContext.currentBranchId }, false); await branchContext.refreshBranchData(); return res.data || item; } catch { notify("Fallo al guardar material", "error"); } }}
+                  onUpdateInventory={async (item) => { try { const res = await dataService.saveInventoryItem(item, true); await branchContext.refreshBranchData(); return res.data || item; } catch { notify("Fallo al actualizar material", "error"); } }}
+                  onAddProduct={async (p) => { const res = await dataService.saveProduct({ ...p, isNew: true }); await branchContext.refreshBranchData(); return res.data || p; }}
+                  onUpdateProduct={async (p) => { const res = await dataService.saveProduct(p); await branchContext.refreshBranchData(); return res.data || p; }}
                 />
               )}
 
-              {/* Contabilidad */}
               {currentView === 'accounting' && (
-                <AccountingView
-                  puc={branchContext.puc}
-                  mappings={[]}
-                  onAddAccount={async () => {}}
-                  onUpdateAccount={async () => {}}
-                  onAddMapping={() => {}}
-                  onUpdateMapping={() => {}}
-                  taxRate={0.19}
-                  userPermissions={Object.values(Permission)}
+                <AccountingView puc={branchContext.puc} mappings={[]} onAddAccount={async () => {}}
+                  onUpdateAccount={async () => {}} onAddMapping={() => {}} onUpdateMapping={() => {}}
+                  taxRate={0.19} userPermissions={Object.values(Permission)}
                 />
               )}
 
-              {/* Clientes */}
+              {/* ── Clientes — usa handleAddCustomer / handleUpdateCustomer ── */}
               {currentView === 'customers' && (
-                <CustomersView 
-                  customers={customers} 
+                <CustomersView
+                  customers={customers}
                   currentBranchId={branchContext.currentBranchId}
                   currentCompanyId={branchContext.currentCompanyId}
-                  onAddCustomer={async (c) => {
-                    await dataService.saveCustomer(c);
-                    await loadCustomersData(branchContext.currentCompanyId);
-                  }} 
-                  onUpdateCustomer={async (c) => {
-                    await dataService.saveCustomer(c);
-                    await loadCustomersData(branchContext.currentCompanyId);
-                  }} 
+                  onAddCustomer={handleAddCustomer}
+                  onUpdateCustomer={handleUpdateCustomer}
                 />
               )}
 
-              {/* Reportes */}
               {currentView === 'reports' && (
                 <ReportsView
-                  registers={branchContext.registers}
-                  orders={branchContext.orders}
-                  expenses={branchContext.expenses}
-                  inventory={branchContext.inventory}
-                  products={branchContext.products}
-                  puc={branchContext.puc}
-                  vouchers={branchContext.vouchers}
-                  userPermissions={Object.values(Permission)}
-                  customers={customers}
-                  suppliers={branchContext.suppliers}
-                  branches={branchContext.branches}
-                  currentBranchId={branchContext.currentBranchId}
+                  registers={branchContext.registers} orders={branchContext.orders}
+                  expenses={branchContext.expenses} inventory={branchContext.inventory}
+                  products={branchContext.products} puc={branchContext.puc}
+                  vouchers={branchContext.vouchers} userPermissions={Object.values(Permission)}
+                  customers={customers} suppliers={branchContext.suppliers}
+                  branches={branchContext.branches} currentBranchId={branchContext.currentBranchId}
                   purchaseOrders={branchContext.purchaseOrders}
                   onUpdateOrder={(order: Order) => dataService.patchOrder(order.id, order).then(() => branchContext.refreshBranchData())}
                 />
               )}
 
-              {/* Ajustes */}
               {currentView === 'settings' && (
-                <SettingsView 
-                  currentBranchId={branchContext.currentBranchId} 
-                  currentCompanyId={branchContext.currentCompanyId}
-                  branches={branchContext.branches} 
-                  onAddBranch={async (b) => {
-                    await dataService.saveBranch(b);
-                    await branchContext.refreshBranchData();
-                    if (currentUser) await loadSettings(currentUser.companyId);
-                  }} 
-                  onUpdateBranch={async (b) => {
-                    await dataService.saveBranch(b);
-                    await branchContext.refreshBranchData();
-                    if (currentUser) await loadSettings(currentUser.companyId);
-                  }} 
-                  onChangeBranch={branchContext.setBranchId} 
-                  puc={branchContext.puc} 
-                  impoconsumoConfig={settings?.impoconsumo || DEFAULT_IMPOCONSUMO} 
-                  onUpdateImpoconsumo={async (config) => {
-                    try {
-                      await dataService.updateSettings({ impoconsumo: config });
-                      if (currentUser) await loadSettings(currentUser.companyId);
-                      notify("Impoconsumo actualizado correctamente", "success");
-                    } catch (e) { notify("Fallo al actualizar Impoconsumo", "error"); }
-                  }}
-                  taxRate={settings?.taxRate || 0.19} 
-                  onUpdateTax={async (rate) => {
-                    try {
-                      await dataService.updateSettings({ taxRate: rate });
-                      if (currentUser) await loadSettings(currentUser.companyId);
-                      notify("Tasa de IVA global guardada", "success");
-                    } catch (e) { notify("Fallo al actualizar tasa IVA", "error"); }
-                  }} 
-                  registers={branchContext.registers} 
-                  onAddRegister={async (reg) => { await dataService.saveRegister(reg); branchContext.refreshBranchData(); }} 
-                  onUpdateRegister={async (reg) => { await dataService.saveRegister(reg); branchContext.refreshBranchData(); }} 
-                  onDeleteRegister={async (id) => { await dataService.deleteRegister(id); branchContext.refreshBranchData(); }} 
-                  categories={branchContext.categories} 
-                  onAddCategory={async (cat) => { await dataService.saveCategory(cat); branchContext.refreshBranchData(); }} 
-                  onUpdateCategory={async (cat) => { await dataService.saveCategory(cat); branchContext.refreshBranchData(); }} 
-                  onDeleteCategory={async (id) => { await dataService.deleteCategory(id); branchContext.refreshBranchData(); }} 
-                  users={users} 
-                  onAddUser={async (u) => {
-                    await dataService.saveUser(u);
-                    branchContext.refreshBranchData();
-                    await loadUsersAndRoles(currentUser.companyId);
-                  }} 
-                  onUpdateUser={async (u) => {
-                    await dataService.saveUser(u);
-                    branchContext.refreshBranchData();
-                    await loadUsersAndRoles(currentUser.companyId);
-                  }}  
-                  roleDefinitions={roleDefinitions} 
-                  onUpdateRoleDefinitions={async (u) => {
-                    try {
-                      await dataService.saveRole(u);
-                      await loadUsersAndRoles(currentUser.companyId);
-                    } catch (error: any) {
-                      notify("Error al sincronizar perfiles de seguridad", "error");
-                    }
-                  }}
-                  userRole={currentUser.role as Role} 
-                  loyaltyConfig={settings?.loyalty || DEFAULT_LOYALTY} 
-                  onUpdateLoyalty={async (config) => {
-                    try {
-                      await dataService.updateSettings({ loyalty: config });
-                      if (currentUser) await loadSettings(currentUser.companyId);
-                      notify("Actualización en fidelización exitosa.", "success");
-                    } catch (e) { notify("Error crítico al sincronizar fidelidad", "error"); }
-                  }}
-                  userPermissions={Object.values(Permission)} 
+                <SettingsView
+                  currentBranchId={branchContext.currentBranchId} currentCompanyId={branchContext.currentCompanyId}
+                  branches={branchContext.branches}
+                  onAddBranch={async (b) => { await dataService.saveBranch(b); await branchContext.refreshBranchData(); if (currentUser) await loadSettings(currentUser.companyId); }}
+                  onUpdateBranch={async (b) => { await dataService.saveBranch(b); await branchContext.refreshBranchData(); if (currentUser) await loadSettings(currentUser.companyId); }}
+                  onChangeBranch={branchContext.setBranchId} puc={branchContext.puc}
+                  impoconsumoConfig={settings?.impoconsumo || DEFAULT_IMPOCONSUMO}
+                  onUpdateImpoconsumo={async (config) => { try { await dataService.updateSettings({ impoconsumo: config }); if (currentUser) await loadSettings(currentUser.companyId); notify("Impoconsumo actualizado", "success"); } catch { notify("Fallo al actualizar Impoconsumo", "error"); } }}
+                  taxRate={settings?.taxRate || 0.19}
+                  onUpdateTax={async (rate) => { try { await dataService.updateSettings({ taxRate: rate }); if (currentUser) await loadSettings(currentUser.companyId); notify("Tasa de IVA global guardada", "success"); } catch { notify("Fallo al actualizar tasa IVA", "error"); } }}
+                  registers={branchContext.registers}
+                  onAddRegister={async (reg) => { await dataService.saveRegister(reg); branchContext.refreshBranchData(); }}
+                  onUpdateRegister={async (reg) => { await dataService.saveRegister(reg); branchContext.refreshBranchData(); }}
+                  onDeleteRegister={async (id) => { await dataService.deleteRegister(id); branchContext.refreshBranchData(); }}
+                  categories={branchContext.categories}
+                  onAddCategory={async (cat) => { await dataService.saveCategory(cat); branchContext.refreshBranchData(); }}
+                  onUpdateCategory={async (cat) => { await dataService.saveCategory(cat); branchContext.refreshBranchData(); }}
+                  onDeleteCategory={async (id) => { await dataService.deleteCategory(id); branchContext.refreshBranchData(); }}
+                  users={users}
+                  onAddUser={async (u) => { await dataService.saveUser(u); branchContext.refreshBranchData(); await loadUsersAndRoles(currentUser.companyId); }}
+                  onUpdateUser={async (u) => { await dataService.saveUser(u); branchContext.refreshBranchData(); await loadUsersAndRoles(currentUser.companyId); }}
+                  roleDefinitions={roleDefinitions}
+                  onUpdateRoleDefinitions={async (u) => { try { await dataService.saveRole(u); await loadUsersAndRoles(currentUser.companyId); } catch { notify("Error al sincronizar perfiles de seguridad", "error"); } }}
+                  userRole={currentUser.role as Role} loyaltyConfig={settings?.loyalty || DEFAULT_LOYALTY}
+                  onUpdateLoyalty={async (config) => { try { await dataService.updateSettings({ loyalty: config }); if (currentUser) await loadSettings(currentUser.companyId); notify("Actualización en fidelización exitosa.", "success"); } catch { notify("Error crítico al sincronizar fidelidad", "error"); } }}
+                  userPermissions={Object.values(Permission)}
                 />
               )}
 
-              {/* Servicios / Productos */}
               {currentView === 'products' && (
-                <ProductsView 
-                  products={branchContext.products} 
-                  inventory={branchContext.inventory} 
-                  categories={branchContext.categories ?? []} 
-                  puc={branchContext.puc} 
-                  onAddProduct={async (p) => {
-                    await dataService.saveProduct({ ...p, isNew: true });
-                    notify("Producto creado exitosamente", "success");
-                    branchContext.refreshBranchData();
-                  }} 
-                  onUpdateProduct={async (p) => {
-                    await dataService.saveProduct(p);
-                    notify("Producto actualizado exitosamente", "success");
-                    branchContext.refreshBranchData();
-                  }} 
-                  currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)} 
-                  taxRate={0.19} 
-                  impoconsumoRate={0.08} 
+                <ProductsView
+                  products={branchContext.products} inventory={branchContext.inventory}
+                  categories={branchContext.categories ?? []} puc={branchContext.puc}
+                  onAddProduct={async (p) => { await dataService.saveProduct({ ...p, isNew: true }); notify("Producto creado", "success"); branchContext.refreshBranchData(); }}
+                  onUpdateProduct={async (p) => { await dataService.saveProduct(p); notify("Producto actualizado", "success"); branchContext.refreshBranchData(); }}
+                  currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)}
+                  taxRate={0.19} impoconsumoRate={0.08}
                 />
               )}
 
-              {/* Tratamientos */}
               {currentView === 'treatments' && (
                 <TreatmentView
-                  customers={customers}
-                  products={branchContext.products ?? []}
+                  customers={customers} products={branchContext.products ?? []}
                   treatments={branchContext.treatments}
-                  onAddTreatment={handleAddTreatment}
-                  onUpdateTreatment={handleUpdateTreatment}
-                  onDeleteTreatment={handleDeleteTreatment}
-                  currentBranchId={branchContext.currentBranchId}
+                  onAddTreatment={handleAddTreatment} onUpdateTreatment={handleUpdateTreatment}
+                  onDeleteTreatment={handleDeleteTreatment} currentBranchId={branchContext.currentBranchId}
                 />
               )}
 
-              {/* ── NUEVO: Seguimiento ──────────────────────────────────── */}
               {currentView === 'follow' && (
-                <FollowView
-                  branchId={branchContext.currentBranchId}
-                  currentUserName={currentUser.name}
-                />
+                <FollowView branchId={branchContext.currentBranchId} currentUserName={currentUser.name} />
               )}
-              {/* ─────────────────────────────────────────────────────────── */}
 
-              {/* Catálogo QR */}
               {currentView === 'menu_qr' && (
-                <QrMenuView
-                  products={branchContext.products}
-                  currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)}
-                />
+                <QrMenuView products={branchContext.products} currentBranch={branchContext.branches.find(b => b.id === branchContext.currentBranchId)} />
               )}
 
-              {/* Gastos y Costos */}
               {currentView === 'operational_mgmt' && (
-                <OperationalManagementView 
-                  currentBranchId={branchContext.currentBranchId}
-                  currentCompanyId={branchContext.currentCompanyId}
-                  suppliers={branchContext.suppliers} 
-                  expenses={branchContext.expenses} 
-                  puc={branchContext.puc} 
-                  inventory={branchContext.inventory} 
-                  purchaseOrders={branchContext.purchaseOrders} 
-                  taxRate={settings?.taxRate || 0.19} 
-                  impoconsumoConfig={settings?.impoconsumo || DEFAULT_IMPOCONSUMO} 
-                  onAddExpense={(e) => dataService.saveExpense(e).then(() => branchContext.refreshBranchData())} 
-                  onUpdateExpense={(e) => dataService.saveExpense(e).then(() => branchContext.refreshBranchData())} 
-                  onAddPurchaseOrder={(po) => dataService.savePurchaseOrder(po).then(() => branchContext.refreshBranchData())} 
-                  onUpdatePurchaseOrder={(po) => dataService.savePurchaseOrder(po).then(() => branchContext.refreshBranchData())} 
-                  onProcessPurchase={async (i, t, s, tx, oId) => { if (oId) await dataService.receivePurchaseOrder(oId); branchContext.refreshBranchData(); }} 
-                  onAddSupplier={(s) => dataService.saveSupplier(s).then(() => branchContext.refreshBranchData())} 
-                  onUpdateSupplier={(s) => dataService.saveSupplier(s).then(() => branchContext.refreshBranchData())} 
-                  onEjecutarAsiento={(id) => dataService.executeExpense(id).then(() => branchContext.refreshBranchData())} 
-                  userPermissions={activePermissions} 
+                <OperationalManagementView
+                  currentBranchId={branchContext.currentBranchId} currentCompanyId={branchContext.currentCompanyId}
+                  suppliers={branchContext.suppliers} expenses={branchContext.expenses}
+                  puc={branchContext.puc} inventory={branchContext.inventory}
+                  purchaseOrders={branchContext.purchaseOrders}
+                  taxRate={settings?.taxRate || 0.19} impoconsumoConfig={settings?.impoconsumo || DEFAULT_IMPOCONSUMO}
+                  onAddExpense={(e) => dataService.saveExpense(e).then(() => branchContext.refreshBranchData())}
+                  onUpdateExpense={(e) => dataService.saveExpense(e).then(() => branchContext.refreshBranchData())}
+                  onAddPurchaseOrder={(po) => dataService.savePurchaseOrder(po).then(() => branchContext.refreshBranchData())}
+                  onUpdatePurchaseOrder={(po) => dataService.savePurchaseOrder(po).then(() => branchContext.refreshBranchData())}
+                  onProcessPurchase={async (i, t, s, tx, oId) => { if (oId) await dataService.receivePurchaseOrder(oId); branchContext.refreshBranchData(); }}
+                  onAddSupplier={(s) => dataService.saveSupplier(s).then(() => branchContext.refreshBranchData())}
+                  onUpdateSupplier={(s) => dataService.saveSupplier(s).then(() => branchContext.refreshBranchData())}
+                  onEjecutarAsiento={(id) => dataService.executeExpense(id).then(() => branchContext.refreshBranchData())}
+                  userPermissions={activePermissions}
                 />
               )}
             </>
           )}
         </main>
 
-        {/* ── Barra de navegación móvil ── */}
         {currentUser && (
           <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-xl border-t border-slate-200 flex items-center justify-around px-2 z-[60] shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-            <button 
-              onClick={() => setCurrentView('dashboard')} 
-              className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'dashboard' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}
-            >
+            <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'dashboard' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}>
               <LayoutGrid size={22} className={currentView === 'dashboard' ? 'fill-brand-100' : ''} />
               <span className="text-[9px] font-black uppercase tracking-widest">Inicio</span>
             </button>
-            <button 
-              onClick={() => setCurrentView('tables')} 
-              className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'tables' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}
-            >
-              <Grid3X3 size={22} />
-              <span className="text-[9px] font-black uppercase tracking-widest">Sillas</span>
+            <button onClick={() => setCurrentView('tables')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'tables' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}>
+              <Grid3X3 size={22} /><span className="text-[9px] font-black uppercase tracking-widest">Sillas</span>
             </button>
-            <button 
-              onClick={() => setCurrentView('pos')} 
-              className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'pos' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}
-            >
-              <Store size={26} />
-              <span className="text-[9px] font-black uppercase tracking-widest">POS</span>
+            <button onClick={() => setCurrentView('pos')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'pos' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}>
+              <Store size={26} /><span className="text-[9px] font-black uppercase tracking-widest">POS</span>
             </button>
-            <button 
-              onClick={() => setCurrentView('kds')} 
-              className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'kds' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}
-            >
-              <MonitorPlay size={22} />
-              <span className="text-[9px] font-black uppercase tracking-widest">KDS</span>
+            <button onClick={() => setCurrentView('kds')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'kds' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}>
+              <MonitorPlay size={22} /><span className="text-[9px] font-black uppercase tracking-widest">KDS</span>
             </button>
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)} 
-              className="flex flex-col items-center gap-1 p-2 rounded-2xl transition-all text-slate-400"
-            >
-              <Menu size={22} />
-              <span className="text-[9px] font-black uppercase tracking-widest">Más</span>
+            <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1 p-2 rounded-2xl transition-all text-slate-400">
+              <Menu size={22} /><span className="text-[9px] font-black uppercase tracking-widest">Más</span>
             </button>
           </nav>
         )}
 
         <style>{`
-          @keyframes loading {
-            0%   { transform: translateX(-100%); }
-            100% { transform: translateX(300%); }
-          }
-          input, select, textarea {
-            font-size: 16px !important;
-          }
+          @keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+          input, select, textarea { font-size: 16px !important; }
         `}</style>
       </div>
     </div>
