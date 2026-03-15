@@ -40,19 +40,18 @@ const buildAlert = (sessions: { status: string; date?: string | null }[]): strin
   const canceladas = sessions.filter(s => s.status === 'CANCELADA').length;
   const vencidas   = sessions.filter(s => isVencida(s)).length;
   if (canceladas >= 2) return `No se ha presentado a ${canceladas} citas. Requiere contacto urgente.`;
-  if (vencidas   >= 1) return `Tiene ${vencidas} sesión(es) vencida(s) sin reprogramar.`;
+  if (vencidas   >= 1) return `Tiene ${vencidas} sesion(es) vencida(s) sin reprogramar.`;
   return null;
 };
 
-const nextScheduled = (sessions: { status: string; date?: string | null; time?: string | null; label: string }[]) =>
+const nextScheduled = (
+  sessions: { status: string; date?: string | null; time?: string | null; label: string }[]
+) =>
   sessions
     .filter(s => s.status === 'PROGRAMADA' && s.date)
     .sort((a, b) => (a.date! > b.date! ? 1 : -1))[0] ?? null;
 
-const recalcStatus = (
-  sessions: { status: string }[],
-  current: string
-): string => {
+const recalcStatus = (sessions: { status: string }[], current: string): string => {
   if (current === 'CANCELADO') return 'CANCELADO';
   if (!sessions.length) return current;
   const allDone   = sessions.every(s => ['REALIZADA', 'PAGADA'].includes(s.status));
@@ -64,15 +63,14 @@ const recalcStatus = (
   return 'PENDIENTE';
 };
 
-// Notas clínicas: guardadas en el campo notes como texto plano con separador
-// Compatible con el campo notes que usa TreatmentView
+// ── Notas del tratamiento (texto plano con separador) ─────────────────────────
 const NOTE_SEP = '\n---\n';
 
 const parseNotes = (raw: string | null) => {
   if (!raw) return [];
   return raw.split(NOTE_SEP)
     .map(block => {
-      const lines = block.trim().split('\n');
+      const lines  = block.trim().split('\n');
       const header = lines[0] ?? '';
       const text   = lines.slice(1).join('\n').trim();
       const [datePart, author] = header.split(' · ');
@@ -94,23 +92,45 @@ const serializeNote = (author: string, text: string): string => {
   return `${date} · ${author}\n${text}`;
 };
 
-// ─── GET /api/follow — Lista de tratamientos para seguimiento ─────────────────
+// ── Serializa una sesion exponiendo todos sus campos incluidos los trackingXxx ─
+// El frontend usa buildTrackingMap() para leer estos campos planos.
+const serializeSession = (s: any) => ({
+  id:                 s.id,
+  sessionNumber:      s.sessionNumber,
+  label:              s.label,
+  date:               s.date,
+  time:               s.time,
+  status:             s.status,
+  effectiveStatus:    isVencida(s) ? 'VENCIDA' : s.status,
+  notes:              s.notes,
+  isScheduled:        s.isScheduled,
+  // ── Tracking clinico por sesion ────────────────────────────────────────
+  trackingOdontogram: s.trackingOdontogram ?? null,
+  trackingPhotos:     s.trackingPhotos     ?? null,
+  trackingNotes:      s.trackingNotes      ?? null,
+  trackingUpdatedAt:  s.trackingUpdatedAt  ?? null,
+  trackingUpdatedBy:  s.trackingUpdatedBy  ?? null,
+});
+
+// Devuelve true si la sesion tiene al menos un dato de tracking guardado
+const hasTracking = (s: any): boolean =>
+  !!(s.trackingOdontogram || s.trackingPhotos || s.trackingNotes);
+
+// ─── GET /api/follow ──────────────────────────────────────────────────────────
 
 /**
  * @swagger
  * tags:
  *   name: Follow
- *   description: Seguimiento clínico de pacientes y tratamientos
+ *   description: Seguimiento clinico de pacientes y tratamientos
  */
 
 /**
  * @swagger
  * /api/follow:
  *   get:
- *     summary: Lista tratamientos con datos de paciente para el panel de seguimiento
+ *     summary: Lista tratamientos para el panel de seguimiento
  *     tags: [Follow]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: branchId
@@ -126,12 +146,11 @@ const serializeNote = (author: string, text: string): string => {
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Lista de tratamientos para seguimiento
+ *         description: Lista de tratamientos
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { branchId, status, search } = req.query as Record<string, string>;
-
     if (!branchId) return res.status(400).json({ error: 'branchId es requerido' });
 
     const treatments = await prisma.patientTreatment.findMany({
@@ -150,39 +169,51 @@ router.get('/', async (req: Request, res: Response) => {
         customer: {
           select: { id: true, name: true, phone: true, email: true, documentNumber: true },
         },
-        product: { select: { id: true, name: true, price: true } },
+        product:  { select: { id: true, name: true, price: true } },
         sessions: {
           orderBy: { sessionNumber: 'asc' },
-          select:  { status: true, date: true, time: true, label: true },
+          // Solo campos ligeros — no traemos base64 en la lista para no inflar el payload
+          select: {
+            id:                 true,
+            status:             true,
+            date:               true,
+            time:               true,
+            label:              true,
+            trackingOdontogram: true,
+            trackingPhotos:     true,
+            trackingNotes:      true,
+          },
         },
       },
       orderBy: { updatedAt: 'desc' },
     });
 
     const result = treatments.map(t => {
-      const next = nextScheduled(t.sessions);
+      const next = nextScheduled(t.sessions as any[]);
       return {
-        treatmentId:    t.id,
-        customerId:     t.customerId,
-        customerName:   t.customer.name,
-        customerPhone:  t.customer.phone,
-        customerEmail:  t.customer.email,
-        customerDoc:    t.customer.documentNumber,
-        plan:           t.name,
-        doctor:         t.doctor,
-        totalCost:      t.totalCost,
-        productName:    t.product?.name ?? null,
-        status:         mapFollowStatus(t.status, t.sessions),
-        rawStatus:      t.status,
-        progress:       calcProgress(t.sessions),
-        totalSessions:  t.sessions.length,
-        doneSessions:   t.sessions.filter(s => ['REALIZADA', 'PAGADA'].includes(s.status)).length,
-        cancelledCount: t.sessions.filter(s => s.status === 'CANCELADA').length,
-        vencidaCount:   t.sessions.filter(s => isVencida(s)).length,
-        alerta:         buildAlert(t.sessions),
-        nextSession:    next ? { label: next.label, date: next.date, time: next.time } : null,
-        updatedAt:      t.updatedAt,
-        createdAt:      t.createdAt,
+        treatmentId:      t.id,
+        customerId:       t.customerId,
+        customerName:     (t.customer as any).name,
+        customerPhone:    (t.customer as any).phone,
+        customerEmail:    (t.customer as any).email,
+        customerDoc:      (t.customer as any).documentNumber,
+        plan:             t.name,
+        doctor:           t.doctor,
+        totalCost:        t.totalCost,
+        productName:      (t.product as any)?.name ?? null,
+        status:           mapFollowStatus(t.status, t.sessions as any[]),
+        rawStatus:        t.status,
+        progress:         calcProgress(t.sessions as any[]),
+        totalSessions:    t.sessions.length,
+        doneSessions:     t.sessions.filter(s => ['REALIZADA', 'PAGADA'].includes(s.status)).length,
+        cancelledCount:   t.sessions.filter(s => s.status === 'CANCELADA').length,
+        vencidaCount:     (t.sessions as any[]).filter(s => isVencida(s)).length,
+        alerta:           buildAlert(t.sessions as any[]),
+        nextSession:      next ? { label: next.label, date: next.date, time: next.time } : null,
+        // Cuantas sesiones tienen tracking — util para mostrar badge en la lista izquierda
+        trackedSessions:  (t.sessions as any[]).filter(s => hasTracking(s)).length,
+        updatedAt:        t.updatedAt,
+        createdAt:        t.createdAt,
       };
     });
 
@@ -193,16 +224,14 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// ─── GET /api/follow/:id — Detalle de un tratamiento ─────────────────────────
+// ─── GET /api/follow/:id ──────────────────────────────────────────────────────
 
 /**
  * @swagger
  * /api/follow/{id}:
  *   get:
- *     summary: Detalle completo de un tratamiento con sesiones y notas clínicas
+ *     summary: Detalle completo de un tratamiento con sesiones y tracking clinico
  *     tags: [Follow]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -221,23 +250,12 @@ router.get('/:id', async (req: Request, res: Response) => {
       include: {
         customer: true,
         product:  { select: { id: true, name: true, price: true } },
+        // Trae TODOS los campos de la sesion incluidos trackingXxx con base64
         sessions: { orderBy: { sessionNumber: 'asc' } },
       },
     });
 
     if (!t) return res.status(404).json({ error: 'Tratamiento no encontrado' });
-
-    const sessions = t.sessions.map(s => ({
-      id:              s.id,
-      sessionNumber:   s.sessionNumber,
-      label:           s.label,
-      date:            s.date,
-      time:            s.time,
-      status:          s.status,
-      effectiveStatus: isVencida(s) ? 'VENCIDA' : s.status,
-      notes:           s.notes,
-      isScheduled:     s.isScheduled,
-    }));
 
     const pps = t.totalCost && t.sessions.length > 0
       ? t.totalCost / t.sessions.length
@@ -245,29 +263,31 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     return res.json({
       id:              t.id,
+      name:            t.name,   // alias para PatientTreatment.name
       plan:            t.name,
       description:     t.description,
       doctor:          t.doctor,
       totalCost:       t.totalCost,
       pricePerSession: pps,
-      status:          mapFollowStatus(t.status, t.sessions),
+      status:          mapFollowStatus(t.status, t.sessions as any[]),
       rawStatus:       t.status,
-      progress:        calcProgress(t.sessions),
+      progress:        calcProgress(t.sessions as any[]),
       createdAt:       t.createdAt,
       updatedAt:       t.updatedAt,
-      alerta:          buildAlert(t.sessions),
-      nextSession:     nextScheduled(t.sessions),
+      alerta:          buildAlert(t.sessions as any[]),
+      nextSession:     nextScheduled(t.sessions as any[]),
       customer: {
-        id:       t.customer.id,
-        name:     t.customer.name,
-        phone:    t.customer.phone,
-        email:    t.customer.email,
-        document: t.customer.documentNumber,
-        address:  t.customer.address,
-        city:     t.customer.city,
+        id:       (t.customer as any).id,
+        name:     (t.customer as any).name,
+        phone:    (t.customer as any).phone,
+        email:    (t.customer as any).email,
+        document: (t.customer as any).documentNumber,
+        address:  (t.customer as any).address,
+        city:     (t.customer as any).city,
       },
       product:  t.product ?? null,
-      sessions,
+      // Cada sesion lleva sus campos trackingXxx; buildTrackingMap() del frontend los lee
+      sessions: (t.sessions as any[]).map(serializeSession),
       notes:    parseNotes(t.notes),
       notesRaw: t.notes,
     });
@@ -277,16 +297,15 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// ─── PATCH /api/follow/:treatmentId/sessions/:sessionId/status ────────────────
+// ─── PATCH /api/follow/:treatmentId/sessions/:sessionId/status ───────────────
+// Ruta ORIGINAL — solo cambia el estado de la sesion
 
 /**
  * @swagger
  * /api/follow/{treatmentId}/sessions/{sessionId}/status:
  *   patch:
- *     summary: Actualiza estado de una sesión y recalcula el tratamiento
+ *     summary: Actualiza estado de una sesion y recalcula el tratamiento
  *     tags: [Follow]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: treatmentId
@@ -312,7 +331,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  *               time:  { type: string }
  *     responses:
  *       200:
- *         description: Sesión actualizada + nuevo status del tratamiento
+ *         description: Sesion actualizada
  */
 router.patch('/:treatmentId/sessions/:sessionId/status', async (req: Request, res: Response) => {
   try {
@@ -333,12 +352,11 @@ router.patch('/:treatmentId/sessions/:sessionId/status', async (req: Request, re
         ...(notes !== undefined && { notes }),
         ...(date  !== undefined && { date }),
         ...(time  !== undefined && { time }),
-        ...(status === 'REPROGRAMADA'               && { isScheduled: true }),
-        ...(status === 'PROGRAMADA' && date          && { isScheduled: true }),
+        ...(status === 'REPROGRAMADA'          && { isScheduled: true }),
+        ...(status === 'PROGRAMADA' && date    && { isScheduled: true }),
       },
     });
 
-    // Recalcular status del tratamiento
     const allSessions = await prisma.treatmentSession.findMany({
       where:  { treatmentId },
       select: { status: true },
@@ -361,16 +379,114 @@ router.patch('/:treatmentId/sessions/:sessionId/status', async (req: Request, re
   }
 });
 
-// ─── POST /api/follow/:treatmentId/notes — Agrega nota clínica ───────────────
+// ─── PATCH /api/follow/:treatmentId/sessions/:sessionId ──────────────────────
+// Ruta NUEVA — guarda el tracking clinico (odontograma, fotos base64, notas)
+// El frontend lo llama desde handleSaveSessionTracking() en FollowView.tsx
+
+/**
+ * @swagger
+ * /api/follow/{treatmentId}/sessions/{sessionId}:
+ *   patch:
+ *     summary: Guarda el tracking clinico de una sesion
+ *     description: |
+ *       Actualiza los campos de seguimiento clinico de la sesion.
+ *       Solo los campos presentes en el body son modificados (patch parcial).
+ *       Los campos aceptados son:
+ *         - trackingOdontogram: objeto JSON con hallazgos por diente
+ *         - trackingPhotos: array de fotos en base64
+ *         - trackingNotes: texto libre de observaciones
+ *         - trackingUpdatedAt: ISO timestamp del registro
+ *         - trackingUpdatedBy: nombre del profesional que registra
+ *     tags: [Follow]
+ *     parameters:
+ *       - in: path
+ *         name: treatmentId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               trackingOdontogram:
+ *                 type: object
+ *               trackingPhotos:
+ *                 type: array
+ *               trackingNotes:
+ *                 type: string
+ *               trackingUpdatedAt:
+ *                 type: string
+ *                 format: date-time
+ *               trackingUpdatedBy:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Sesion con tracking actualizado (serializeSession)
+ *       400:
+ *         description: Sin campos para actualizar
+ *       404:
+ *         description: Sesion no encontrada en el tratamiento
+ */
+router.patch('/:treatmentId/sessions/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { treatmentId, sessionId } = req.params;
+    const {
+      trackingOdontogram,
+      trackingPhotos,
+      trackingNotes,
+      trackingUpdatedAt,
+      trackingUpdatedBy,
+    } = req.body;
+
+    // Verificar que la sesion pertenece al tratamiento indicado
+    const existing = await prisma.treatmentSession.findFirst({
+      where: { id: sessionId, treatmentId },
+    });
+    if (!existing) {
+      return res.status(404).json({ error: 'Sesion no encontrada en este tratamiento' });
+    }
+
+    // Construir payload con solo los campos presentes en el body
+    const data: Record<string, unknown> = {};
+    if (trackingOdontogram !== undefined) data.trackingOdontogram = trackingOdontogram;
+    if (trackingPhotos     !== undefined) data.trackingPhotos     = trackingPhotos;
+    if (trackingNotes      !== undefined) data.trackingNotes      = trackingNotes;
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: 'No se enviaron campos de tracking para actualizar' });
+    }
+
+    // Metadatos de auditoria: quien registro y cuando
+    data.trackingUpdatedAt = trackingUpdatedAt ? new Date(trackingUpdatedAt) : new Date();
+    data.trackingUpdatedBy = trackingUpdatedBy ?? 'Sistema';
+
+    const updated = await prisma.treatmentSession.update({
+      where: { id: sessionId },
+      data,
+    });
+
+    // Devuelve la sesion serializada con todos sus campos trackingXxx
+    return res.json(serializeSession(updated));
+  } catch (error) {
+    console.error('[follow] PATCH sessions/tracking:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ─── POST /api/follow/:treatmentId/notes ─────────────────────────────────────
 
 /**
  * @swagger
  * /api/follow/{treatmentId}/notes:
  *   post:
- *     summary: Agrega nota clínica al campo notes del tratamiento
+ *     summary: Agrega nota clinica al tratamiento
  *     tags: [Follow]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: treatmentId
@@ -388,7 +504,7 @@ router.patch('/:treatmentId/sessions/:sessionId/status', async (req: Request, re
  *               text:   { type: string }
  *     responses:
  *       200:
- *         description: Nota guardada, devuelve la nota nueva
+ *         description: Nota guardada
  */
 router.post('/:treatmentId/notes', async (req: Request, res: Response) => {
   try {
