@@ -226,7 +226,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
 
   const handleExportCSV = () => {
     const activeProducts = products.filter(p => p.productType !== ProductType.DIRECT_SALE && p.isActive);
-    const headers = ["Plato", "Categoria", "Tipo", "Precio", "Costo", "Promo"];
+    const headers = ["Servicio", "Categoria", "Tipo", "Precio", "Costo", "Promo"];
     const rows = activeProducts.map(p => [p.name, p.category, p.productType, p.price, p.cost, p.promotionType]);
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
     const link = document.createElement("a");
@@ -258,7 +258,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
 
       <div className="mb-8 relative group print:hidden">
           <Search className="absolute left-5 top-4 text-slate-400" size={20} />
-          <input type="text" placeholder="Buscar plato o combo..." className="w-full pl-14 pr-6 py-4 border-none bg-white rounded-3xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input type="text" placeholder="Buscar servicio o combo..." className="w-full pl-14 pr-6 py-4 border-none bg-white rounded-3xl shadow-sm focus:ring-2 focus:ring-brand-500 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
 
       {displayProducts.length === 0 ? (
@@ -332,7 +332,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                   <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                       <div className="flex items-center gap-3">
                           <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg"><ChefHat size={20}/></div>
-                          <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{editingProduct ? 'Editar Producto' : 'Alta Nuevo Plato'}</h3>
+                          <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{editingProduct ? 'Editar Producto' : 'Alta Nuevo Servicio'}</h3>
                       </div>
                       <button onClick={() => setIsModalOpen(false)} className="bg-white p-2 rounded-xl shadow-sm text-slate-400 hover:text-slate-700 transition-all"><X size={20}/></button>
                   </div>
@@ -340,7 +340,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                           <div className="space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Nombre Comercial del Plato</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Nombre Comercial del Sevicio</label>
                                     <input required type="text" className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold focus:ring-2 focus:ring-brand-500 outline-none uppercase text-xs" value={prodName} onChange={e => setProdName(e.target.value)} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -504,7 +504,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                               <div className="space-y-6">
                                   <div className="relative group">
                                       <div className="h-40 w-full bg-white border-2 border-dashed border-slate-200 rounded-3xl overflow-hidden flex flex-col items-center justify-center cursor-pointer hover:border-brand-300 transition-all" onClick={() => fileInputRef.current?.click()}>
-                                          {prodImageUrl ? <img src={prodImageUrl} className="w-full h-full object-cover" /> : <><ImageIcon size={40} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase">Fotografía del Plato</span></>}
+                                          {prodImageUrl ? <img src={prodImageUrl} className="w-full h-full object-cover" /> : <><ImageIcon size={40} className="text-slate-200 mb-2" /><span className="text-[10px] font-black text-slate-400 uppercase">Fotografía del Servicio</span></>}
                                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                                       </div>
                                   </div>
