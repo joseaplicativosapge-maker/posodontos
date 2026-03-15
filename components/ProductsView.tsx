@@ -244,9 +244,9 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
         <div>
             <h2 className="text-3xl font-black text-slate-800 tracking-tighter flex items-center gap-3">
                 <ChefHat className="text-brand-600" size={32} />
-                Cartas y Menús
+                Servicios
             </h2>
-            <p className="text-slate-500 font-medium text-xs tracking-widest mt-1">Gestión avanzada de platos y combos.</p>
+            <p className="text-slate-500 font-medium text-xs tracking-widest mt-1">Gestión avanzada de servicios y combos.</p>
         </div>
         <div className="flex gap-2 print:hidden">
             <button onClick={handleExportCSV} className="bg-white border border-emerald-200 text-emerald-600 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-emerald-50 transition-all flex items-center gap-2"><Download size={16}/> Descargar Excel</button>
