@@ -302,6 +302,49 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
   const labelCls    = "block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest";
   const textareaCls = "w-full bg-slate-50 border-none rounded-xl p-4 font-medium text-xs focus:ring-2 focus:ring-brand-500 outline-none resize-none";
 
+
+  // ── % de llenado de historia clínica ─────────────────────────────────────
+  const calcClinicalProgress = (ch: any): number => {
+    if (!ch) return 0;
+    let filled = 0; const total = 14;
+
+    // 10 campos de texto
+    const textFields = [
+      'motivoConsulta', 'enfermedadActual', 'antecedentesMedicos',
+      'antecedentesOdontologicos', 'examenExtraoralDetalle', 'examenIntraoralDetalle',
+      'diagnosticoDetalle', 'planTratamientoDetalle', 'medicamentosActuales',
+      'observacionesGenerales'
+    ];
+    textFields.forEach(f => { if (ch[f] && ch[f].trim()) filled++; });
+
+    // Signos vitales: al menos uno lleno
+    if (ch.signos && Object.values(ch.signos).some((v: any) => v && String(v).trim())) filled++;
+
+    // Antecedentes sistémicos: al menos uno marcado
+    if (ch.antSistemicosList && Object.values(ch.antSistemicosList).some(Boolean)) filled++;
+
+    // Odontograma: al menos un diente registrado
+    if (ch.odontograma && Object.keys(ch.odontograma).length > 0) filled++;
+
+    // Consentimiento informado
+    if (ch.consentimientoInformado) filled++;
+
+    return Math.round((filled / total) * 100);
+  };
+
+  // Color del indicador según progreso
+  const progressColor = (pct: number) =>
+    pct === 100 ? 'bg-emerald-500' :
+    pct >= 70   ? 'bg-teal-500'    :
+    pct >= 40   ? 'bg-amber-500'   :
+    pct > 0     ? 'bg-orange-500'  : 'bg-slate-200';
+
+  const progressTextColor = (pct: number) =>
+    pct === 100 ? 'text-emerald-600' :
+    pct >= 70   ? 'text-teal-600'    :
+    pct >= 40   ? 'text-amber-600'   :
+    pct > 0     ? 'text-orange-600'  : 'text-slate-400';
+
   return (
     <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-50 pb-24 md:pb-8 relative animate-in fade-in duration-500">
       <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
@@ -347,9 +390,18 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
               <div className="inline-flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100"><Star size={14} className="text-emerald-500" fill="currentColor"/><span className="text-[11px] font-black text-emerald-700 tabular-nums">{customer.points} Puntos</span></div>
               <div className="flex gap-2">
                 <button onClick={() => handleOpenClinicalModal(customer)}
-                  className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1 ${customer.clinicalHistory ? 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100 border border-cyan-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                  className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex flex-col items-center gap-0.5 ${customer.clinicalHistory ? 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100 border border-cyan-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                   title="Historia Clínica Odontológica">
-                  <Stethoscope size={12} />{customer.clinicalHistory ? 'HC ✓' : 'HC'}
+                  <div className="flex items-center gap-1">
+                    <Stethoscope size={12} />
+                    <span>{customer.clinicalHistory ? `HC ${calcClinicalProgress(customer.clinicalHistory)}%` : 'HC'}</span>
+                  </div>
+                  {customer.clinicalHistory && (
+                    <div className="w-full bg-slate-200 rounded-full h-1 overflow-hidden">
+                      <div className={`h-1 rounded-full transition-all ${progressColor(calcClinicalProgress(customer.clinicalHistory))}`}
+                        style={{ width: `${calcClinicalProgress(customer.clinicalHistory)}%` }} />
+                    </div>
+                  )}
                 </button>
                 <button onClick={() => handleOpenModal(customer)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${customer.isActive ? 'bg-slate-50 text-slate-500 hover:bg-slate-100' : 'bg-slate-200 text-slate-400'}`}>Ver Ficha</button>
               </div>
@@ -408,6 +460,31 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
               </div>
               <button onClick={() => setIsClinicalModalOpen(false)} className="bg-white p-3 rounded-2xl text-slate-400 hover:text-slate-800 shadow-sm transition-all"><X size={20} /></button>
             </div>
+
+            {/* Barra de progreso del llenado */}
+            {(() => {
+              const pct = calcClinicalProgress({
+                motivoConsulta, enfermedadActual, antecedentesMedicos, antecedentesOdontologicos,
+                examenExtraoralDetalle, examenIntraoralDetalle, diagnosticoDetalle, planTratamientoDetalle,
+                medicamentosActuales, observacionesGenerales, signos, antSistemicosList,
+                odontograma, consentimientoInformado,
+              });
+              return (
+                <div className="px-6 py-3 bg-white border-b border-slate-100 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Completitud de la historia clínica</span>
+                    <span className={`text-[11px] font-black ${progressTextColor(pct)}`}>{pct}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div className={`h-2 rounded-full transition-all duration-500 ${progressColor(pct)}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[8px] text-slate-400">{pct === 0 ? 'Sin datos' : pct < 40 ? 'Inicio' : pct < 70 ? 'En progreso' : pct < 100 ? 'Casi completa' : '¡Completa!'}</span>
+                    <span className="text-[8px] text-slate-400">{Math.round(pct * 14 / 100)}/14 secciones</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="overflow-y-auto flex-1 p-6 space-y-3 custom-scrollbar">
 
