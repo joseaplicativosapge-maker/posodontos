@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Customer, DocumentType, Documents } from '../types';
 import { Users, Search, Plus, Phone, MapPin, Mail, X, Save, Trash2, Edit2, RotateCcw, Archive, Star, Fingerprint, ShieldCheck, Download, Printer, Building2, User, Calendar, Briefcase, Stethoscope, ClipboardList, ChevronDown, ChevronUp, CheckSquare, Square } from 'lucide-react';
 import { useNotification } from './NotificationContext';
+// ── CAMBIO 1: importar dataService para la ruta dedicada de historia clínica ──
 import { dataService } from '../services/data.service';
 
 interface CustomersViewProps {
@@ -30,6 +31,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
   const [isClinicalModalOpen, setIsClinicalModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
+  // ── CAMBIO 2: estado de guardado para el botón con loading ────────────────
   const [savingClinical, setSavingClinical] = useState(false);
 
   const [motivoConsulta, setMotivoConsulta] = useState('');
@@ -45,8 +47,15 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
   const [openSection, setOpenSection] = useState<string | null>('anamnesis');
 
   const [antSistemicosList, setAntSistemicosList] = useState<Record<string, boolean>>({
-    diabetes: false, hipertension: false, cardiopatia: false, asma: false,
-    epilepsia: false, coagulopatia: false, vih: false, embarazo: false, alergias: false,
+    diabetes: false,
+    hipertension: false,
+    cardiopatia: false,
+    asma: false,
+    epilepsia: false,
+    coagulopatia: false,
+    vih: false,
+    embarazo: false,
+    alergias: false,
   });
   const [otrosAntSistemicos, setOtrosAntSistemicos] = useState('');
   const [alergiaDetalle, setAlergiaDetalle] = useState('');
@@ -93,28 +102,30 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
   const FACE_LABELS: Record<string, string> = { O:'Oclusal/Incisal', V:'Vestibular', L:'Lingual/Palatino', M:'Mesial', D:'Distal' };
   const FACES = ['O','V','L','M','D'];
 
-  const getGlobalStatus    = (num: number) => odontograma[num]?.['GLOBAL'] || '';
-  const getFaceColor       = (num: number, face: string) => {
+  const getGlobalStatus  = (num: number) => odontograma[num]?.['GLOBAL'] || '';
+  const getFaceColor     = (num: number, face: string) => {
     const g = getGlobalStatus(num);
     if (g) return GLOBAL_CONDITIONS[g]?.color || '#e2e8f0';
-    return CONDITIONS[odontograma[num]?.[face] || '']?.color || CONDITIONS[''].color;
+    const cond = odontograma[num]?.[face] || '';
+    return CONDITIONS[cond]?.color || CONDITIONS[''].color;
   };
-  const getFaceStroke      = (num: number, face: string) => {
+  const getFaceStroke    = (num: number, face: string) => {
     const g = getGlobalStatus(num);
     if (g) return GLOBAL_CONDITIONS[g]?.stroke || '#94a3b8';
-    return CONDITIONS[odontograma[num]?.[face] || '']?.stroke || CONDITIONS[''].stroke;
+    const cond = odontograma[num]?.[face] || '';
+    return CONDITIONS[cond]?.stroke || CONDITIONS[''].stroke;
   };
-  const hasAnyCondition    = (num: number) => { const t = odontograma[num]; if (!t) return false; return Object.values(t).some(v => !!v); };
-  const setFaceCondition   = (num: number, face: string, cond: string) => setOdontograma(prev => ({ ...prev, [num]: { ...(prev[num] || {}), [face]: cond } }));
+  const hasAnyCondition  = (num: number) => { const t = odontograma[num]; if (!t) return false; return Object.values(t).some(v => !!v); };
+  const setFaceCondition = (num: number, face: string, cond: string) => setOdontograma(prev => ({ ...prev, [num]: { ...(prev[num] || {}), [face]: cond } }));
   const setGlobalCondition = (num: number, cond: string) => setOdontograma(prev => ({ ...prev, [num]: { ...(prev[num] || {}), GLOBAL: cond } }));
-  const clearTooth         = (num: number) => setOdontograma(prev => { const n = {...prev}; delete n[num]; return n; });
+  const clearTooth       = (num: number) => setOdontograma(prev => { const n = {...prev}; delete n[num]; return n; });
 
   const ToothDiagram = ({ num, isUpper }: { num: number; isUpper: boolean }) => {
-    const isSelected   = selectedTooth === num;
+    const isSelected  = selectedTooth === num;
     const globalStatus = getGlobalStatus(num);
-    const isAbsent     = globalStatus === 'Ausente' || globalStatus === 'Extracción';
-    const isImplant    = globalStatus === 'Implante';
-    const isMolar      = [16,17,18,26,27,28,36,37,38,46,47,48].includes(num);
+    const isAbsent    = globalStatus === 'Ausente' || globalStatus === 'Extracción';
+    const isImplant   = globalStatus === 'Implante';
+    const isMolar     = [16,17,18,26,27,28,36,37,38,46,47,48].includes(num);
     const S = isMolar ? 46 : 36; const C = S/2; const innerHalf = S*0.175; const ci = C-innerHalf; const innerSize = innerHalf*2; const bg = 2;
     const topFace = isUpper ? 'V' : 'L'; const bottomFace = isUpper ? 'L' : 'V';
     const colO = getFaceColor(num,'O'); const colT = getFaceColor(num,topFace); const colB = getFaceColor(num,bottomFace);
@@ -206,9 +217,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
     setIsClinicalModalOpen(true);
   };
 
+  // ── CAMBIO 3: handleSaveClinicalHistory async — llama la ruta dedicada ─────
   const handleSaveClinicalHistory = async () => {
     if (!selectedCustomer) return;
     setSavingClinical(true);
+
     const clinicalHistory = {
       motivoConsulta, enfermedadActual, antecedentesMedicos, antecedentesOdontologicos,
       examenExtraoral, examenIntraoral, diagnostico, planTratamiento, consentimientoFirmado,
@@ -220,8 +233,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
       pronóstico, consentimientoInformado, observacionesGenerales,
       fechaUltimaActualizacion: new Date().toISOString(),
     };
+
     try {
+      // Llama PUT /customers/:id/clinical-history directamente
       await dataService.saveClinicalHistory(selectedCustomer.id, clinicalHistory);
+      // Notifica al App para actualizar el estado local sin recargar toda la lista
       onUpdateCustomer({ ...selectedCustomer, clinicalHistory });
       notify('Historia clínica guardada correctamente.', 'success');
       setIsClinicalModalOpen(false);
@@ -286,25 +302,6 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
   const labelCls    = "block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest";
   const textareaCls = "w-full bg-slate-50 border-none rounded-xl p-4 font-medium text-xs focus:ring-2 focus:ring-brand-500 outline-none resize-none";
 
-  const calcClinicalProgress = (ch: any): number => {
-    if (!ch) return 0;
-    let filled = 0; const total = 14;
-    ['motivoConsulta','enfermedadActual','antecedentesMedicos','antecedentesOdontologicos',
-     'examenExtraoralDetalle','examenIntraoralDetalle','diagnosticoDetalle','planTratamientoDetalle',
-     'medicamentosActuales','observacionesGenerales'].forEach(f => { if (ch[f] && ch[f].trim()) filled++; });
-    if (ch.signos && Object.values(ch.signos).some((v: any) => v && String(v).trim())) filled++;
-    if (ch.antSistemicosList && Object.values(ch.antSistemicosList).some(Boolean)) filled++;
-    if (ch.odontograma && Object.keys(ch.odontograma).length > 0) filled++;
-    if (ch.consentimientoInformado) filled++;
-    return Math.round((filled / total) * 100);
-  };
-
-  const progressColor = (pct: number) =>
-    pct === 100 ? 'bg-emerald-500' : pct >= 70 ? 'bg-teal-500' : pct >= 40 ? 'bg-amber-500' : pct > 0 ? 'bg-orange-500' : 'bg-slate-200';
-
-  const progressTextColor = (pct: number) =>
-    pct === 100 ? 'text-emerald-600' : pct >= 70 ? 'text-teal-600' : pct >= 40 ? 'text-amber-600' : pct > 0 ? 'text-orange-600' : 'text-slate-400';
-
   return (
     <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-50 pb-24 md:pb-8 relative animate-in fade-in duration-500">
       <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
@@ -350,18 +347,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
               <div className="inline-flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100"><Star size={14} className="text-emerald-500" fill="currentColor"/><span className="text-[11px] font-black text-emerald-700 tabular-nums">{customer.points} Puntos</span></div>
               <div className="flex gap-2">
                 <button onClick={() => handleOpenClinicalModal(customer)}
-                  className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex flex-col items-center gap-0.5 ${customer.clinicalHistory ? 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100 border border-cyan-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                  className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1 ${customer.clinicalHistory ? 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100 border border-cyan-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                   title="Historia Clínica Odontológica">
-                  <div className="flex items-center gap-1">
-                    <Stethoscope size={12} />
-                    <span>{customer.clinicalHistory ? `HC ${calcClinicalProgress(customer.clinicalHistory)}%` : 'HC'}</span>
-                  </div>
-                  {customer.clinicalHistory && (
-                    <div className="w-full bg-slate-200 rounded-full h-1 overflow-hidden">
-                      <div className={`h-1 rounded-full transition-all ${progressColor(calcClinicalProgress(customer.clinicalHistory))}`}
-                        style={{ width: `${calcClinicalProgress(customer.clinicalHistory)}%` }} />
-                    </div>
-                  )}
+                  <Stethoscope size={12} />{customer.clinicalHistory ? 'HC ✓' : 'HC'}
                 </button>
                 <button onClick={() => handleOpenModal(customer)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${customer.isActive ? 'bg-slate-50 text-slate-500 hover:bg-slate-100' : 'bg-slate-200 text-slate-400'}`}>Ver Ficha</button>
               </div>
@@ -420,31 +408,6 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
               </div>
               <button onClick={() => setIsClinicalModalOpen(false)} className="bg-white p-3 rounded-2xl text-slate-400 hover:text-slate-800 shadow-sm transition-all"><X size={20} /></button>
             </div>
-
-            {/* Barra de progreso */}
-            {(() => {
-              const pct = calcClinicalProgress({
-                motivoConsulta, enfermedadActual, antecedentesMedicos, antecedentesOdontologicos,
-                examenExtraoralDetalle, examenIntraoralDetalle, diagnosticoDetalle, planTratamientoDetalle,
-                medicamentosActuales, observacionesGenerales, signos, antSistemicosList,
-                odontograma, consentimientoInformado,
-              });
-              return (
-                <div className="px-6 py-3 bg-white border-b border-slate-100 flex-shrink-0">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Completitud de la historia clínica</span>
-                    <span className={`text-[11px] font-black ${progressTextColor(pct)}`}>{pct}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div className={`h-2 rounded-full transition-all duration-500 ${progressColor(pct)}`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-[8px] text-slate-400">{pct === 0 ? 'Sin datos' : pct < 40 ? 'Inicio' : pct < 70 ? 'En progreso' : pct < 100 ? 'Casi completa' : '¡Completa!'}</span>
-                    <span className="text-[8px] text-slate-400">{Math.round(pct * 14 / 100)}/14 secciones</span>
-                  </div>
-                </div>
-              );
-            })()}
 
             <div className="overflow-y-auto flex-1 p-6 space-y-3 custom-scrollbar">
 
@@ -582,9 +545,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
                 )}
               </SectionAccordion>
 
-              {/* ── DIAGNÓSTICO — sin Plan de Tratamiento ── */}
-              <SectionAccordion id="diagnostico" title="Diagnóstico" icon={<Briefcase size={16}/>}>
+              <SectionAccordion id="diagnostico" title="Diagnóstico y Plan de Tratamiento" icon={<Briefcase size={16}/>}>
                 <div><label className={labelCls}>Diagnóstico</label><textarea rows={3} className={textareaCls} value={diagnosticoDetalle} onChange={e => setDiagnosticoDetalle(e.target.value)} placeholder="Diagnóstico presuntivo y definitivo..." /></div>
+                <div><label className={labelCls}>Plan de Tratamiento</label><textarea rows={4} className={textareaCls} value={planTratamientoDetalle} onChange={e => setPlanTratamientoDetalle(e.target.value)} placeholder="Procedimientos a realizar en orden de prioridad..." /></div>
                 <div><label className={labelCls}>Pronóstico</label><select className={inputCls} value={pronóstico} onChange={e => setPronóstico(e.target.value)}><option value="">Seleccionar pronóstico</option><option value="Bueno">Bueno</option><option value="Regular">Regular</option><option value="Reservado">Reservado</option><option value="Malo">Malo</option></select></div>
                 <div><label className={labelCls}>Observaciones Generales</label><textarea rows={2} className={textareaCls} value={observacionesGenerales} onChange={e => setObservacionesGenerales(e.target.value)} placeholder="Notas adicionales relevantes..." /></div>
               </SectionAccordion>
@@ -602,9 +565,14 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
 
             </div>
 
+            {/* Footer — botón guardar con loading */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
-              <button type="button" onClick={handleSaveClinicalHistory} disabled={savingClinical}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-cyan-100 uppercase tracking-[0.2em] text-xs active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed">
+              <button
+                type="button"
+                onClick={handleSaveClinicalHistory}
+                disabled={savingClinical}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-cyan-100 uppercase tracking-[0.2em] text-xs active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
                 {savingClinical
                   ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
                   : <><Save size={18}/> Guardar Historia Clínica</>

@@ -598,8 +598,14 @@ model TreatmentSession {
   notes         String?          @db.Text
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+  isScheduled   Boolean?         @default(false)
 
-  isScheduled   Boolean?  @default(false)
+  // ── Tracking clínico por sesión ──────────────────────────────────
+  trackingOdontogram  Json?               // { [toothNum]: { GLOBAL?: string, O?: string, V?: string, ... } }
+  trackingPhotos      Json?               // TrackingPhoto[]  — base64 embebido
+  trackingNotes       String?             @db.Text
+  trackingUpdatedAt   DateTime?
+  trackingUpdatedBy   String?
 
   @@index([treatmentId])
   @@map("TreatmentSession")
