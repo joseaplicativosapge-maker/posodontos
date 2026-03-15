@@ -58,7 +58,16 @@ const mapCustomer = (c: any) => ({
   clinicalHistory: parseClinical(c.clinicalHistory),
 });
 
-// ─── GET /api/customers — Lista de clientes por compañía ─────────────────────
+/**
+ * Resuelve el companyId buscando en todos los campos posibles que puede
+ * enviar el frontend: companyId, currentCompanyId, o company_id.
+ * Evita el error "name, phone y companyId son requeridos" cuando el
+ * frontend envía currentCompanyId en lugar de companyId.
+ */
+const resolveCompanyId = (body: Record<string, any>): string | null =>
+  body.companyId ?? body.currentCompanyId ?? body.company_id ?? null;
+
+// ─── GET /api/customers ───────────────────────────────────────────────────────
 
 /**
  * @swagger
@@ -73,8 +82,6 @@ const mapCustomer = (c: any) => ({
  *   get:
  *     summary: Lista todos los clientes de una compañía
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: companyId
@@ -112,7 +119,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// ─── GET /api/customers/:id — Un cliente por ID ───────────────────────────────
+// ─── GET /api/customers/:id ───────────────────────────────────────────────────
 
 /**
  * @swagger
@@ -120,8 +127,6 @@ router.get('/', async (req: Request, res: Response) => {
  *   get:
  *     summary: Obtiene un cliente por ID (incluye historia clínica)
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -136,7 +141,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const customer = await prisma.customer.findUnique({
-      where: { id: req.params.id },
+      where:   { id: req.params.id },
       include: { treatments: { include: { sessions: true } } },
     });
 
@@ -148,7 +153,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// ─── POST /api/customers — Crear cliente ──────────────────────────────────────
+// ─── POST /api/customers ──────────────────────────────────────────────────────
 
 /**
  * @swagger
@@ -156,15 +161,13 @@ router.get('/:id', async (req: Request, res: Response) => {
  *   post:
  *     summary: Crear un nuevo cliente
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, phone, companyId]
+ *             required: [name, phone]
  *             properties:
  *               name:                 { type: string }
  *               phone:                { type: string }
@@ -176,35 +179,51 @@ router.get('/:id', async (req: Request, res: Response) => {
  *               fiscalResponsibility: { type: string }
  *               birthDate:            { type: string }
  *               companyId:            { type: string }
+ *               currentCompanyId:     { type: string }
  *     responses:
  *       201:
  *         description: Cliente creado
+ *       400:
+ *         description: Faltan campos requeridos
+ *       409:
+ *         description: Documento duplicado
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
     const {
       name, phone, email, address, city,
-      documentType, documentNumber, fiscalResponsibility,
-      birthDate, companyId, currentCompanyId,
+      documentType, documentNumber, fiscalResponsibility, birthDate,
     } = req.body;
 
-    const resolvedCompanyId = companyId ?? currentCompanyId;
-    if (!name || !phone || !resolvedCompanyId) {
-      return res.status(400).json({ error: 'name, phone y companyId son requeridos' });
+    // FIX: acepta companyId, currentCompanyId o company_id indistintamente
+    const companyId = resolveCompanyId(req.body);
+
+    // Validación clara con detalle de qué falta
+    const missing: string[] = [];
+    if (!name?.trim())  missing.push('name');
+    if (!phone?.trim()) missing.push('phone');
+    if (!companyId)     missing.push('companyId / currentCompanyId');
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error:   'Faltan campos requeridos',
+        missing,
+        received: Object.keys(req.body),   // útil para depurar en desarrollo
+      });
     }
 
     const customer = await prisma.customer.create({
       data: {
-        name:                 name.toUpperCase(),
-        phone,
-        email:                email   || null,
-        address:              address || null,
-        city:                 city    || null,
-        documentType:         documentType         || null,
-        documentNumber:       documentNumber       || null,
-        fiscalResponsibility: fiscalResponsibility || null,
+        name:                 name.trim().toUpperCase(),
+        phone:                phone.trim(),
+        email:                email?.trim()                || null,
+        address:              address?.trim()              || null,
+        city:                 city?.trim()                 || null,
+        documentType:         documentType                 || null,
+        documentNumber:       documentNumber?.trim()       || null,
+        fiscalResponsibility: fiscalResponsibility?.trim() || null,
         birthDate:            birthDate ? new Date(birthDate) : null,
-        companyId:            resolvedCompanyId,
+        companyId,
         points:               0,
         isActive:             true,
       },
@@ -220,7 +239,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// ─── PUT /api/customers/:id — Actualizar cliente ──────────────────────────────
+// ─── PUT /api/customers/:id ───────────────────────────────────────────────────
 
 /**
  * @swagger
@@ -228,8 +247,6 @@ router.post('/', async (req: Request, res: Response) => {
  *   put:
  *     summary: Actualizar datos de un cliente (sin tocar historia clínica)
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -250,7 +267,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const customer = await prisma.customer.update({
       where: { id: req.params.id },
       data: {
-        ...(name             !== undefined && { name: name.toUpperCase() }),
+        ...(name             !== undefined && { name: name.trim().toUpperCase() }),
         ...(phone            !== undefined && { phone }),
         ...(email            !== undefined && { email }),
         ...(address          !== undefined && { address }),
@@ -272,7 +289,7 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// ─── PUT /api/customers/:id/clinical-history — Guardar historia clínica ──────
+// ─── PUT /api/customers/:id/clinical-history ─────────────────────────────────
 
 /**
  * @swagger
@@ -280,30 +297,11 @@ router.put('/:id', async (req: Request, res: Response) => {
  *   put:
  *     summary: Guardar o actualizar la historia clínica odontológica del paciente
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             description: Objeto completo de historia clínica odontológica
- *             properties:
- *               motivoConsulta:            { type: string }
- *               enfermedadActual:          { type: string }
- *               antecedentesMedicos:       { type: string }
- *               antecedentesOdontologicos: { type: string }
- *               antSistemicosList:         { type: object }
- *               odontograma:               { type: object }
- *               diagnosticoDetalle:        { type: string }
- *               planTratamientoDetalle:    { type: string }
- *               consentimientoInformado:   { type: boolean }
  *     responses:
  *       200:
  *         description: Historia clínica guardada, devuelve el cliente actualizado
@@ -315,7 +313,6 @@ router.put('/:id/clinical-history', async (req: Request, res: Response) => {
     const { id } = req.params;
     const clinicalData: ClinicalHistory = req.body;
 
-    // Verificar que el cliente existe
     const existing = await prisma.customer.findUnique({
       where:  { id },
       select: { id: true, clinicalHistory: true },
@@ -323,8 +320,8 @@ router.put('/:id/clinical-history', async (req: Request, res: Response) => {
     if (!existing) return res.status(404).json({ error: 'Cliente no encontrado' });
 
     // Merge con historia existente para no perder datos anteriores
-    const previous  = parseClinical(existing.clinicalHistory);
-    const merged    = { ...previous, ...clinicalData };
+    const previous   = parseClinical(existing.clinicalHistory);
+    const merged     = { ...previous, ...clinicalData };
     const serialized = serializeClinical(merged);
 
     const customer = await prisma.customer.update({
@@ -340,7 +337,7 @@ router.put('/:id/clinical-history', async (req: Request, res: Response) => {
   }
 });
 
-// ─── GET /api/customers/:id/clinical-history — Obtener historia clínica ──────
+// ─── GET /api/customers/:id/clinical-history ─────────────────────────────────
 
 /**
  * @swagger
@@ -348,8 +345,6 @@ router.put('/:id/clinical-history', async (req: Request, res: Response) => {
  *   get:
  *     summary: Obtener la historia clínica odontológica de un paciente
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -365,7 +360,13 @@ router.get('/:id/clinical-history', async (req: Request, res: Response) => {
   try {
     const customer = await prisma.customer.findUnique({
       where:  { id: req.params.id },
-      select: { id: true, name: true, documentType: true, documentNumber: true, clinicalHistory: true },
+      select: {
+        id:              true,
+        name:            true,
+        documentType:    true,
+        documentNumber:  true,
+        clinicalHistory: true,
+      },
     });
 
     if (!customer) return res.status(404).json({ error: 'Cliente no encontrado' });
@@ -383,7 +384,7 @@ router.get('/:id/clinical-history', async (req: Request, res: Response) => {
   }
 });
 
-// ─── DELETE /api/customers/:id/clinical-history — Borrar historia clínica ────
+// ─── DELETE /api/customers/:id/clinical-history ──────────────────────────────
 
 /**
  * @swagger
@@ -391,8 +392,6 @@ router.get('/:id/clinical-history', async (req: Request, res: Response) => {
  *   delete:
  *     summary: Eliminar la historia clínica de un paciente
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -416,7 +415,7 @@ router.delete('/:id/clinical-history', async (req: Request, res: Response) => {
   }
 });
 
-// ─── PATCH /api/customers/:id/toggle — Activar / Desactivar ─────────────────
+// ─── PATCH /api/customers/:id/toggle ─────────────────────────────────────────
 
 /**
  * @swagger
@@ -424,8 +423,6 @@ router.delete('/:id/clinical-history', async (req: Request, res: Response) => {
  *   patch:
  *     summary: Activar o desactivar un cliente
  *     tags: [Customers]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id

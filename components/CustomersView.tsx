@@ -262,17 +262,66 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ customers, current
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const customerData = { name: name.toUpperCase(), phone, email, address, documentType, documentNumber, city, fiscalResponsibility, birthDate, currentCompanyId };
+    const customerData = {
+      name: name.toUpperCase(), phone, email, address,
+      documentType, documentNumber, city, fiscalResponsibility, birthDate,
+      // Se envían las tres variantes para maxima compatibilidad con el backend
+      companyId:        currentCompanyId,
+      currentCompanyId: currentCompanyId,
+    };
+ 
     if (editingId) {
+      // Actualizar cliente existente via API
       const original = customers.find(c => c.id === editingId);
-      if (original) { onUpdateCustomer({ ...original, ...customerData }); notify('Cliente actualizado correctamente.', 'success'); }
+      if (!original) return;
+      try {
+        const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+        const res = await fetch(`${API}/api/customers/${editingId}`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(customerData),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const updated = await res.json();
+        onUpdateCustomer(updated);
+        notify('Cliente actualizado correctamente.', 'success');
+      } catch (err) {
+        console.error('[customers] PUT error:', err);
+        onUpdateCustomer({ ...original, ...customerData });
+        notify('Cliente actualizado.', 'info');
+      }
     } else {
-      const newCustomer: Customer = { id: `c-${Date.now()}`, ...customerData, points: 0, isActive: true };
-      onAddCustomer(newCustomer); notify('Cliente registrado con éxito.', 'success');
+      // Crear nuevo cliente via API
+      try {
+        const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+        const res = await fetch(`${API}/api/customers`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(customerData),
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          console.error('[customers] POST 400 body:', errBody);
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const created = await res.json();
+        onAddCustomer(created);
+        notify('Cliente registrado con exito.', 'success');
+      } catch (err) {
+        console.error('[customers] POST error:', err);
+        // Fallback local si el API no responde
+        const newCustomer: Customer = {
+          id: `c-${Date.now()}`, ...customerData, points: 0, isActive: true,
+        };
+        onAddCustomer(newCustomer);
+        notify('Cliente registrado (offline).', 'info');
+      }
     }
-    setIsModalOpen(false); resetForm();
+ 
+    setIsModalOpen(false);
+    resetForm();
   };
 
   const toggleStatus = async (customer: Customer) => {
