@@ -624,7 +624,7 @@ const App: React.FC = () => {
               )}
 
               {currentView === 'follow' && (
-                <FollowView branchId={branchContext.currentBranchId} currentUserName={currentUser.name} />
+                <FollowView branchId={branchContext.currentBranchId} currentUserName={currentUser.name} customers={customers} />
               )}
 
               {currentView === 'menu_qr' && (
