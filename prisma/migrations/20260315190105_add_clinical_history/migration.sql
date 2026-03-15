@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `customer` ADD COLUMN `clinicalHistory` LONGTEXT NULL;
+ALTER TABLE `Customer` ADD COLUMN `clinicalHistory` LONGTEXT NULL;

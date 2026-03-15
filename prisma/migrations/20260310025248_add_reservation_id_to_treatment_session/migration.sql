@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `treatmentsession` ADD COLUMN `isScheduled` BOOLEAN NULL;
+ALTER TABLE `TreatmentSession` ADD COLUMN `isScheduled` BOOLEAN NULL;
