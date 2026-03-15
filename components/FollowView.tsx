@@ -4,7 +4,7 @@ import {
   Activity, FileText, CalendarDays, AlertTriangle, DollarSign,
   Clock, CheckCircle2, XCircle, RotateCcw, AlertCircle,
   ChevronDown, ChevronUp, Plus, Filter, Loader2, Save,
-  Stethoscope, Calendar,
+  Stethoscope, Calendar, ChevronRight,
 } from 'lucide-react';
 import {
   Customer, PatientTreatment, TreatmentSession,
@@ -13,15 +13,17 @@ import {
 import { useBranch } from './BranchContext';
 import { dataService } from '../services/data.service';
 import { useNotification } from './NotificationContext';
+import { CustomerDetailModal } from './CustomerDetailModal';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface FollowViewProps {
-  branchId:         string;
-  currentUserName?: string;
+  branchId:          string;
+  currentUserName?:  string;
+  onUpdateCustomer?: (c: Customer) => void;
 }
 
-// ─── Config (igual que T_CFG / S_CFG en TreatmentView) ───────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const T_CFG: Record<TreatmentStatus, { label: string; bg: string; text: string; border: string }> = {
   [TreatmentStatus.PENDIENTE]:   { label: 'Pendiente',   bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
@@ -39,13 +41,7 @@ const S_CFG: Record<SessionStatus, { label: string; dot: string; bg: string }> =
   [SessionStatus.PAGADA]:       { label: 'Pagada',       dot: 'bg-violet-500',  bg: 'bg-violet-100'  },
 };
 
-// ─── Normaliza el status que llega del backend (string o enum) ───────────────
-// El endpoint /api/follow/:id devuelve { rawStatus: "EN_PROGRESO", status: "activo", ... }
-// pero el contexto tiene el PatientTreatment con status como TreatmentStatus enum.
-// Esta función garantiza que siempre obtenemos una key válida para T_CFG.
-
 const normalizeTreatmentStatus = (t: any): TreatmentStatus => {
-  // Si viene del endpoint de follow, usa rawStatus
   const raw: string = t?.rawStatus ?? t?.status ?? '';
   switch (raw) {
     case 'EN_PROGRESO': return TreatmentStatus.EN_PROGRESO;
@@ -61,12 +57,7 @@ const formatCOP = (v: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v);
 
 const getEffectiveStatus = (ses: TreatmentSession): SessionStatus => {
-  if (
-    ses.date &&
-    ses.status !== SessionStatus.REALIZADA &&
-    ses.status !== SessionStatus.CANCELADA &&
-    ses.status !== SessionStatus.PAGADA
-  ) {
+  if (ses.date && ses.status !== SessionStatus.REALIZADA && ses.status !== SessionStatus.CANCELADA && ses.status !== SessionStatus.PAGADA) {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const d     = new Date(ses.date); d.setHours(0, 0, 0, 0);
     if (d < today) return SessionStatus.VENCIDA;
@@ -91,9 +82,7 @@ const getAlert = (sessions: TreatmentSession[]): string | null => {
 const pricePerSession = (totalCost: number | null | undefined, sessionCount: number) =>
   sessionCount > 0 && totalCost && totalCost > 0 ? totalCost / sessionCount : null;
 
-// Notas: campo text plano con separador (compatible con TreatmentView)
 const NOTE_SEP = '\n---\n';
-
 interface ParsedNote { id: string; date: string; author: string; text: string; }
 
 const parseNotes = (raw: string | null | undefined): ParsedNote[] => {
@@ -104,15 +93,8 @@ const parseNotes = (raw: string | null | undefined): ParsedNote[] => {
     const text   = lines.slice(1).join('\n').trim();
     const sepIdx = header.indexOf(' · ');
     if (sepIdx === -1 || !text) return null;
-    const datePart = header.slice(0, sepIdx).trim();
-    const author   = header.slice(sepIdx + 3).trim();
-    return { id: `note-${Date.now()}-${Math.random()}`, date: datePart, author, text };
+    return { id: `note-${Date.now()}-${Math.random()}`, date: header.slice(0, sepIdx).trim(), author: header.slice(sepIdx + 3).trim(), text };
   }).filter(Boolean) as ParsedNote[];
-};
-
-const serializeNote = (author: string, text: string): string => {
-  const date = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-  return `${date} · ${author}\n${text}`;
 };
 
 // ─── FollowView ───────────────────────────────────────────────────────────────
@@ -120,22 +102,26 @@ const serializeNote = (author: string, text: string): string => {
 export const FollowView: React.FC<FollowViewProps> = ({
   branchId,
   currentUserName = 'Doctor',
+  onUpdateCustomer,
 }) => {
   const { treatments, customers: ctxCustomers, refreshBranchData } = useBranch() as any;
   const { notify } = useNotification();
 
   // ── Estado UI ──────────────────────────────────────────────────────────────
-  const [search,       setSearch]       = useState('');
-  const [filterStatus, setFilterStatus] = useState<TreatmentStatus | 'TODOS'>('TODOS');
-  const [selectedId,   setSelectedId]   = useState<string | null>(null);
-  const [expandedSess, setExpandedSess] = useState(true);
-  const [expandedNote, setExpandedNote] = useState(true);
+  const [search,        setSearch]        = useState('');
+  const [filterStatus,  setFilterStatus]  = useState<TreatmentStatus | 'TODOS'>('TODOS');
+  const [selectedId,    setSelectedId]    = useState<string | null>(null);
+  const [expandedSess,  setExpandedSess]  = useState(true);
+  const [expandedNote,  setExpandedNote]  = useState(true);
 
-  // ── Detalle cargado desde API (sesiones completas) ─────────────────────────
+  // ── Modal cliente ──────────────────────────────────────────────────────────
+  const [customerModal, setCustomerModal] = useState<Customer | null>(null);
+
+  // ── Detalle API ────────────────────────────────────────────────────────────
   const [detailTreatment, setDetailTreatment] = useState<PatientTreatment | null>(null);
   const [loadingDetail,   setLoadingDetail]   = useState(false);
 
-  // ── Nota nueva ─────────────────────────────────────────────────────────────
+  // ── Nota ───────────────────────────────────────────────────────────────────
   const [noteText,   setNoteText]   = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [localNotes, setLocalNotes] = useState<ParsedNote[] | null>(null);
@@ -143,7 +129,7 @@ export const FollowView: React.FC<FollowViewProps> = ({
   // ── Sesión actualizando ────────────────────────────────────────────────────
   const [updatingSessionId, setUpdatingSessionId] = useState<string | null>(null);
 
-  // ── Filtrado de la lista ───────────────────────────────────────────────────
+  // ── Filtrado ───────────────────────────────────────────────────────────────
   const displayed = useMemo(() => {
     const q = search.toLowerCase();
     return (treatments as PatientTreatment[] ?? []).filter(t => {
@@ -157,7 +143,7 @@ export const FollowView: React.FC<FollowViewProps> = ({
     });
   }, [treatments, ctxCustomers, search, filterStatus]);
 
-  // ── Stats (misma lógica que TreatmentView) ─────────────────────────────────
+  // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
     total:      (treatments ?? []).length,
     progreso:   (treatments ?? []).filter((t: PatientTreatment) => t.status === TreatmentStatus.EN_PROGRESO).length,
@@ -165,7 +151,7 @@ export const FollowView: React.FC<FollowViewProps> = ({
     alerta:     (treatments ?? []).filter((t: PatientTreatment) => getAlert(t.sessions ?? []) !== null).length,
   }), [treatments]);
 
-  // ── Cargar detalle completo (con sesiones pobladas) ────────────────────────
+  // ── Cargar detalle ─────────────────────────────────────────────────────────
   const loadDetail = useCallback(async (treatmentId: string) => {
     setLoadingDetail(true);
     setLocalNotes(null);
@@ -173,11 +159,8 @@ export const FollowView: React.FC<FollowViewProps> = ({
       const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
       const res = await fetch(`${API}/api/follow/${treatmentId}`);
       if (!res.ok) throw new Error('Error cargando detalle');
-      const data = await res.json();
-      // El endpoint devuelve la estructura del PatientTreatment con customer embebido
-      setDetailTreatment(data);
+      setDetailTreatment(await res.json());
     } catch {
-      // Fallback: usar datos del contexto
       const t = (treatments as PatientTreatment[] ?? []).find(t => t.id === treatmentId);
       if (t) setDetailTreatment(t);
     } finally {
@@ -186,16 +169,10 @@ export const FollowView: React.FC<FollowViewProps> = ({
   }, [treatments]);
 
   useEffect(() => {
-    if (selectedId) {
-      setExpandedSess(true);
-      setExpandedNote(true);
-      loadDetail(selectedId);
-    } else {
-      setDetailTreatment(null);
-    }
+    if (selectedId) { setExpandedSess(true); setExpandedNote(true); loadDetail(selectedId); }
+    else setDetailTreatment(null);
   }, [selectedId]);
 
-  // ── Refrescar lista + detalle ──────────────────────────────────────────────
   const handleRefresh = async () => {
     await refreshBranchData();
     if (selectedId) loadDetail(selectedId);
@@ -203,23 +180,21 @@ export const FollowView: React.FC<FollowViewProps> = ({
 
   // ── Cambiar estado de sesión ───────────────────────────────────────────────
   const handleSessionStatus = async (
-    treatmentId: string,
-    sessionId:   string,
-    status:      'REALIZADA' | 'CANCELADA' | 'REPROGRAMADA'
+    treatmentId: string, sessionId: string,
+    status: 'REALIZADA' | 'CANCELADA' | 'REPROGRAMADA'
   ) => {
     setUpdatingSessionId(sessionId);
     try {
       const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
       const res = await fetch(`${API}/api/follow/${treatmentId}/sessions/${sessionId}/status`, {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ status }),
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error();
       notify(
-        status === 'REALIZADA'    ? 'Sesión marcada como realizada'    :
-        status === 'CANCELADA'    ? 'Sesión cancelada'                 :
-        'Sesión marcada para reagendar', 'success'
+        status === 'REALIZADA'  ? 'Sesión marcada como realizada' :
+        status === 'CANCELADA'  ? 'Sesión cancelada' : 'Sesión marcada para reagendar',
+        'success'
       );
       await refreshBranchData();
       loadDetail(treatmentId);
@@ -230,16 +205,15 @@ export const FollowView: React.FC<FollowViewProps> = ({
     }
   };
 
-  // ── Guardar nota clínica ───────────────────────────────────────────────────
+  // ── Guardar nota ───────────────────────────────────────────────────────────
   const handleAddNote = async () => {
     if (!noteText.trim() || !detailTreatment) return;
     setSavingNote(true);
     try {
       const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
       const res = await fetch(`${API}/api/follow/${detailTreatment.id}/notes`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ author: currentUserName, text: noteText.trim() }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: currentUserName, text: noteText.trim() }),
       });
       if (!res.ok) throw new Error();
       const saved: ParsedNote = await res.json();
@@ -254,25 +228,21 @@ export const FollowView: React.FC<FollowViewProps> = ({
     }
   };
 
-  // ── Customer del detalle ───────────────────────────────────────────────────
+  // ── Datos derivados del detalle ────────────────────────────────────────────
   const detailCustomer = detailTreatment
     ? ((detailTreatment as any).customer as Customer)
       ?? (ctxCustomers as Customer[] ?? []).find((c: Customer) => c.id === detailTreatment.customerId)
     : null;
 
-  // ── Notas del detalle ──────────────────────────────────────────────────────
   const detailNotes: ParsedNote[] = localNotes
     ?? parseNotes((detailTreatment as any)?.notesRaw ?? detailTreatment?.notes);
 
-  // ── PPS del detalle ────────────────────────────────────────────────────────
-  const detailPps = detailTreatment
+  const detailPps   = detailTreatment
     ? pricePerSession(detailTreatment.totalCost, detailTreatment.sessions?.length ?? 0)
     : null;
 
-  // ── Alerta del detalle ─────────────────────────────────────────────────────
   const detailAlert = detailTreatment ? getAlert(detailTreatment.sessions ?? []) : null;
 
-  // ── Próxima sesión del detalle ─────────────────────────────────────────────
   const detailNextSes = detailTreatment?.sessions
     ?.filter(s => s.status === SessionStatus.PROGRAMADA && s.date)
     ?.sort((a, b) => (a.date! > b.date! ? 1 : -1))[0] ?? null;
@@ -284,9 +254,7 @@ export const FollowView: React.FC<FollowViewProps> = ({
   return (
     <div className="flex h-full bg-slate-50 overflow-hidden pb-20 md:pb-0">
 
-      {/* ══════════════════════════════════════════════════════════════
-          PANEL IZQUIERDO — Lista de tratamientos
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PANEL IZQUIERDO ══════════════════════════════════════════════════ */}
       <div className="w-96 flex-shrink-0 flex flex-col h-full bg-white border-r border-slate-100 shadow-sm overflow-hidden">
 
         {/* Header */}
@@ -295,9 +263,7 @@ export const FollowView: React.FC<FollowViewProps> = ({
             <ClipboardList className="text-teal-600" size={28} />
             Seguimiento
           </h2>
-          <p className="text-slate-500 font-medium text-[10px] tracking-widest">
-            Seguimiento clínico de pacientes
-          </p>
+          <p className="text-slate-500 font-medium text-[10px] tracking-widest">Seguimiento clínico de pacientes</p>
         </div>
 
         {/* Stats */}
@@ -335,9 +301,8 @@ export const FollowView: React.FC<FollowViewProps> = ({
                   key={s}
                   onClick={() => setFilterStatus(s as any)}
                   className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all ${
-                    filterStatus === s
-                      ? 'bg-slate-900 text-white'
-                      : `${cfg?.bg ?? 'bg-slate-100'} ${cfg?.text ?? 'text-slate-500'} hover:opacity-80`
+                    filterStatus === s ? 'bg-slate-900 text-white' :
+                    `${cfg?.bg ?? 'bg-slate-100'} ${cfg?.text ?? 'text-slate-500'} hover:opacity-80`
                   }`}
                 >
                   {s === 'TODOS' ? 'Todos' : cfg!.label}
@@ -356,13 +321,12 @@ export const FollowView: React.FC<FollowViewProps> = ({
             </div>
           ) : (
             displayed.map(t => {
-              const cust  = (ctxCustomers as Customer[] ?? []).find((c: Customer) => c.id === t.customerId);
-              const cfg   = T_CFG[t.status];
-              const prog  = getProgress(t.sessions ?? []);
-              const done  = (t.sessions ?? []).filter(s => s.status === SessionStatus.REALIZADA || s.status === SessionStatus.PAGADA).length;
-              const alerta= getAlert(t.sessions ?? []);
-              const next  = (t.sessions ?? []).filter(s => s.status === SessionStatus.PROGRAMADA && s.date)
-                              .sort((a, b) => (a.date! > b.date! ? 1 : -1))[0];
+              const cust     = (ctxCustomers as Customer[] ?? []).find((c: Customer) => c.id === t.customerId);
+              const cfg      = T_CFG[t.status];
+              const prog     = getProgress(t.sessions ?? []);
+              const done     = (t.sessions ?? []).filter(s => s.status === SessionStatus.REALIZADA || s.status === SessionStatus.PAGADA).length;
+              const alerta   = getAlert(t.sessions ?? []);
+              const next     = (t.sessions ?? []).filter(s => s.status === SessionStatus.PROGRAMADA && s.date).sort((a, b) => (a.date! > b.date! ? 1 : -1))[0];
               const isSelected = selectedId === t.id;
 
               return (
@@ -370,9 +334,7 @@ export const FollowView: React.FC<FollowViewProps> = ({
                   key={t.id}
                   onClick={() => setSelectedId(isSelected ? null : t.id)}
                   className={`w-full text-left px-4 py-4 border-b border-slate-100 transition-all ${
-                    isSelected
-                      ? 'bg-teal-50 border-l-4 border-l-teal-500'
-                      : 'hover:bg-slate-50 border-l-4 border-l-transparent'
+                    isSelected ? 'bg-teal-50 border-l-4 border-l-teal-500' : 'hover:bg-slate-50 border-l-4 border-l-transparent'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -382,13 +344,24 @@ export const FollowView: React.FC<FollowViewProps> = ({
                         <span className={`${cfg.bg} ${cfg.text} text-[7px] font-black uppercase px-2 py-0.5 rounded-full flex-shrink-0`}>
                           {cfg.label}
                         </span>
-                        {alerta && (
-                          <AlertTriangle size={11} className="text-red-500 flex-shrink-0" />
-                        )}
+                        {alerta && <AlertTriangle size={11} className="text-red-500 flex-shrink-0" />}
                       </div>
-                      <p className="text-[10px] text-slate-500 font-bold mt-0.5 flex items-center gap-1">
-                        <User size={9} /> {cust?.name ?? 'Paciente no encontrado'}
+
+                      {/* ── Nombre del paciente clicable ── */}
+                      <p
+                        className="text-[10px] text-slate-500 font-bold mt-0.5 flex items-center gap-1
+                          hover:text-teal-600 transition-colors cursor-pointer w-fit group/name"
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (cust) setCustomerModal(cust);
+                        }}
+                        title="Ver ficha del paciente"
+                      >
+                        <User size={9} />
+                        {cust?.name ?? 'Paciente no encontrado'}
+                        {cust && <ChevronRight size={8} className="opacity-0 group-hover/name:opacity-100 transition-opacity" />}
                       </p>
+
                       <p className="text-[9px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
                         <Stethoscope size={8} /> {t.doctor}
                       </p>
@@ -431,318 +404,302 @@ export const FollowView: React.FC<FollowViewProps> = ({
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════
-          PANEL DERECHO — Detalle del tratamiento seleccionado
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PANEL DERECHO ════════════════════════════════════════════════════ */}
       <div className="flex-1 h-full overflow-y-auto">
 
-        {/* Estado vacío */}
         {!selectedId && (
           <div className="flex flex-col items-center justify-center h-full text-center opacity-40 gap-4">
             <ClipboardList size={72} className="text-slate-300" />
             <h3 className="text-xl font-black text-slate-400 uppercase">Selecciona un paciente</h3>
-            <p className="text-slate-400 text-sm font-medium">
-              Elige un tratamiento de la lista para ver su seguimiento
-            </p>
+            <p className="text-slate-400 text-sm font-medium">Elige un tratamiento de la lista para ver su seguimiento</p>
           </div>
         )}
 
-        {/* Cargando */}
         {selectedId && loadingDetail && (
           <div className="flex items-center justify-center h-full">
             <Loader2 size={32} className="animate-spin text-teal-500" />
           </div>
         )}
 
-        {/* Detalle */}
         {selectedId && !loadingDetail && detailTreatment && (() => {
           const tStatus = normalizeTreatmentStatus(detailTreatment);
           const tCfg    = T_CFG[tStatus];
           return (
-          <div className="p-6 md:p-8 space-y-5 max-w-3xl">
+            <div className="p-6 md:p-8 space-y-5 max-w-3xl">
 
-            {/* ── Tarjeta del paciente ─────────────────────────────────── */}
-            <div className={`bg-white rounded-[2rem] border shadow-sm overflow-hidden ${tCfg.border}`}>
-              <div className="p-6">
+              {/* ── Tarjeta del paciente ─── */}
+              <div className={`bg-white rounded-[2rem] border shadow-sm overflow-hidden ${tCfg.border}`}>
+                <div className="p-6">
 
-                {/* Nombre + estado */}
-                <div className="flex items-start gap-4 mb-5">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="text-xl font-black text-slate-800 uppercase leading-tight">{detailTreatment.name}</h3>
-                      <span className={`${tCfg.bg} ${tCfg.text} text-[8px] font-black uppercase px-2 py-0.5 rounded-full`}>
-                        {tCfg.label}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                      <Stethoscope size={10} /> Dr(a). {detailTreatment.doctor}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Datos del paciente */}
-                {detailCustomer && (
-                  <div className="bg-teal-50 border border-teal-100 rounded-2xl p-4 mb-4 flex items-center gap-3">
-                    <div className="bg-teal-600 p-2 rounded-xl text-white flex-shrink-0">
-                      <User size={16} />
-                    </div>
+                  <div className="flex items-start gap-4 mb-5">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-teal-700 uppercase">{detailCustomer.name}</p>
-                      <div className="flex flex-wrap gap-3 mt-0.5">
-                        {detailCustomer.phone && (
-                          <span className="text-[9px] text-teal-500 font-bold flex items-center gap-1">
-                            <Phone size={9} />{detailCustomer.phone}
-                          </span>
-                        )}
-                        {detailCustomer.email && (
-                          <span className="text-[9px] text-teal-500 font-bold flex items-center gap-1">
-                            <Mail size={9} />{detailCustomer.email}
-                          </span>
-                        )}
-                        {(detailCustomer as any).documentNumber && (
-                          <span className="text-[9px] text-teal-400 font-bold">
-                            Doc: {(detailCustomer as any).documentNumber}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="text-xl font-black text-slate-800 uppercase leading-tight">{detailTreatment.name}</h3>
+                        <span className={`${tCfg.bg} ${tCfg.text} text-[8px] font-black uppercase px-2 py-0.5 rounded-full`}>{tCfg.label}</span>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Grid métricas */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                  <div className="bg-slate-50 rounded-2xl p-3">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sesiones</p>
-                    <p className="text-lg font-black text-slate-700 mt-0.5">
-                      {(detailTreatment.sessions ?? []).filter(s => s.status === SessionStatus.REALIZADA || s.status === SessionStatus.PAGADA).length}
-                      <span className="text-slate-400">/{(detailTreatment.sessions ?? []).length}</span>
-                    </p>
-                  </div>
-                  {detailTreatment.totalCost != null && (
-                    <div className="bg-slate-50 rounded-2xl p-3">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Costo total</p>
-                      <p className="text-sm font-black text-teal-600 mt-0.5">{formatCOP(detailTreatment.totalCost)}</p>
-                    </div>
-                  )}
-                  {detailPps != null && (
-                    <div className="bg-slate-50 rounded-2xl p-3">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Por sesión</p>
-                      <p className="text-sm font-black text-slate-600 mt-0.5">{formatCOP(detailPps)}</p>
-                    </div>
-                  )}
-                  {detailNextSes && (
-                    <div className="bg-teal-50 border border-teal-100 rounded-2xl p-3">
-                      <p className="text-[8px] font-black text-teal-500 uppercase tracking-widest">Próxima cita</p>
-                      <p className="text-[10px] font-black text-teal-700 mt-0.5">
-                        {detailNextSes.date}{detailNextSes.time ? ` · ${detailNextSes.time}` : ''}
+                      <p className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+                        <Stethoscope size={10} /> Dr(a). {detailTreatment.doctor}
                       </p>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Barra de progreso */}
-                <div>
-                  <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden mb-1.5">
+                  {/* Datos del paciente con botón de ficha */}
+                  {detailCustomer && (
                     <div
-                      className="bg-teal-500 h-2 rounded-full transition-all duration-700"
-                      style={{ width: `${getProgress(detailTreatment.sessions ?? [])}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Avance del tratamiento</span>
-                    <span className="text-[9px] font-black text-teal-600">{getProgress(detailTreatment.sessions ?? [])}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Alerta ───────────────────────────────────────────────── */}
-            {detailAlert && (
-              <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-[2rem] p-5">
-                <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Alerta clínica</p>
-                  <p className="text-[11px] text-red-700 font-bold leading-relaxed">{detailAlert}</p>
-                </div>
-              </div>
-            )}
-
-            {/* ── Sesiones ─────────────────────────────────────────────── */}
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-              <button
-                onClick={() => setExpandedSess(v => !v)}
-                className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Activity size={15} className="text-teal-600" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    Sesiones del tratamiento
-                  </span>
-                  {detailPps != null && (
-                    <span className="flex items-center gap-1 bg-teal-50 border border-teal-100 text-teal-600 text-[9px] font-black px-2.5 py-1 rounded-full">
-                      <DollarSign size={9} />{formatCOP(detailPps)} / sesión
-                    </span>
-                  )}
-                </div>
-                {expandedSess
-                  ? <ChevronUp  size={15} className="text-slate-400" />
-                  : <ChevronDown size={15} className="text-slate-400" />}
-              </button>
-
-              {expandedSess && (
-                <div className="border-t border-slate-100 px-5 py-4 space-y-2 bg-slate-50/60">
-                  {(detailTreatment.sessions ?? []).length === 0 ? (
-                    <p className="text-xs text-slate-400 font-medium text-center py-4">Sin sesiones registradas.</p>
-                  ) : (
-                    (detailTreatment.sessions ?? []).map((ses, idx) => {
-                      const effectiveStatus = getEffectiveStatus(ses);
-                      const sc    = S_CFG[effectiveStatus];
-                      const isUpd = updatingSessionId === ses.id;
-
-                      const canDone      = !['REALIZADA','CANCELADA','PAGADA'].includes(ses.status);
-                      const canCancel    = !['REALIZADA','CANCELADA','PAGADA'].includes(ses.status);
-                      const canReschedule = effectiveStatus === SessionStatus.VENCIDA || ses.status === SessionStatus.REPROGRAMADA;
-
-                      return (
-                        <div key={ses.id} className="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-slate-100">
-                          <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
-                            <div className={`w-6 h-6 ${sc.dot} rounded-full flex items-center justify-center`}>
-                              <span className="text-[8px] font-black text-white">{idx + 1}</span>
-                            </div>
-                            {idx < (detailTreatment.sessions ?? []).length - 1 && (
-                              <div className="w-0.5 h-4 bg-slate-200 rounded-full" />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-[10px] font-black text-slate-700 uppercase">{ses.label}</p>
-                              <span className={`${sc.bg} text-[7px] font-black uppercase px-2 py-0.5 rounded-full text-slate-600`}>
-                                {sc.label}
-                              </span>
-                            </div>
-                            {(ses.date || ses.time) && (
-                              <p className="text-[9px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
-                                <Calendar size={8} />{ses.date}{ses.time ? ` · ${ses.time}` : ''}
-                              </p>
-                            )}
-                            {detailPps != null && (
-                              <p className="text-[9px] font-black text-teal-500 mt-0.5 flex items-center gap-1">
-                                <DollarSign size={8} />{formatCOP(detailPps)}
-                              </p>
-                            )}
-                            {ses.notes && <p className="text-[9px] text-slate-400 italic mt-1">{ses.notes}</p>}
-
-                            {/* Acciones rápidas */}
-                            <div className="flex gap-1.5 mt-2 flex-wrap">
-                              {canDone && (
-                                <button
-                                  disabled={isUpd}
-                                  onClick={() => handleSessionStatus(detailTreatment.id, ses.id, 'REALIZADA')}
-                                  className="flex items-center gap-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-200 px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
-                                >
-                                  <CheckCircle2 size={10} />
-                                  {isUpd ? '...' : 'Realizada'}
-                                </button>
-                              )}
-                              {canCancel && (
-                                <button
-                                  disabled={isUpd}
-                                  onClick={() => handleSessionStatus(detailTreatment.id, ses.id, 'CANCELADA')}
-                                  className="flex items-center gap-1 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
-                                >
-                                  <XCircle size={10} /> Cancelar
-                                </button>
-                              )}
-                              {canReschedule && (
-                                <button
-                                  disabled={isUpd}
-                                  onClick={() => handleSessionStatus(detailTreatment.id, ses.id, 'REPROGRAMADA')}
-                                  className="flex items-center gap-1 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white border border-amber-200 px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
-                                >
-                                  <RotateCcw size={10} /> Reagendar
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                      className="bg-teal-50 border border-teal-100 rounded-2xl p-4 mb-4 flex items-center gap-3
+                        cursor-pointer hover:bg-teal-100 hover:border-teal-200 transition-all group"
+                      onClick={() => setCustomerModal(detailCustomer)}
+                      title="Clic para ver ficha completa del paciente"
+                    >
+                      <div className="bg-teal-600 p-2 rounded-xl text-white flex-shrink-0">
+                        <User size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-teal-700 uppercase">{detailCustomer.name}</p>
+                        <div className="flex flex-wrap gap-3 mt-0.5">
+                          {detailCustomer.phone && (
+                            <span className="text-[9px] text-teal-500 font-bold flex items-center gap-1">
+                              <Phone size={9} />{detailCustomer.phone}
+                            </span>
+                          )}
+                          {detailCustomer.email && (
+                            <span className="text-[9px] text-teal-500 font-bold flex items-center gap-1">
+                              <Mail size={9} />{detailCustomer.email}
+                            </span>
+                          )}
+                          {(detailCustomer as any).documentNumber && (
+                            <span className="text-[9px] text-teal-400 font-bold">
+                              Doc: {(detailCustomer as any).documentNumber}
+                            </span>
+                          )}
                         </div>
-                      );
-                    })
+                      </div>
+                      {/* Indicador de clic */}
+                      <div className="flex-shrink-0 text-teal-400 group-hover:text-teal-600 transition-colors">
+                        <ChevronRight size={14} />
+                      </div>
+                    </div>
                   )}
-                </div>
-              )}
-            </div>
 
-            {/* ── Notas clínicas ───────────────────────────────────────── */}
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-              <button
-                onClick={() => setExpandedNote(v => !v)}
-                className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText size={15} className="text-teal-600" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    Notas clínicas
-                  </span>
-                  {detailNotes.length > 0 && (
-                    <span className="bg-slate-100 text-slate-500 text-[8px] font-black px-1.5 py-0.5 rounded-full">
-                      {detailNotes.length}
-                    </span>
-                  )}
-                </div>
-                {expandedNote
-                  ? <ChevronUp  size={15} className="text-slate-400" />
-                  : <ChevronDown size={15} className="text-slate-400" />}
-              </button>
+                  {/* Grid métricas */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-slate-50 rounded-2xl p-3">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sesiones</p>
+                      <p className="text-lg font-black text-slate-700 mt-0.5">
+                        {(detailTreatment.sessions ?? []).filter(s => s.status === SessionStatus.REALIZADA || s.status === SessionStatus.PAGADA).length}
+                        <span className="text-slate-400">/{(detailTreatment.sessions ?? []).length}</span>
+                      </p>
+                    </div>
+                    {detailTreatment.totalCost != null && (
+                      <div className="bg-slate-50 rounded-2xl p-3">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Costo total</p>
+                        <p className="text-sm font-black text-teal-600 mt-0.5">{formatCOP(detailTreatment.totalCost)}</p>
+                      </div>
+                    )}
+                    {detailPps != null && (
+                      <div className="bg-slate-50 rounded-2xl p-3">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Por sesión</p>
+                        <p className="text-sm font-black text-slate-600 mt-0.5">{formatCOP(detailPps)}</p>
+                      </div>
+                    )}
+                    {detailNextSes && (
+                      <div className="bg-teal-50 border border-teal-100 rounded-2xl p-3">
+                        <p className="text-[8px] font-black text-teal-500 uppercase tracking-widest">Próxima cita</p>
+                        <p className="text-[10px] font-black text-teal-700 mt-0.5">
+                          {detailNextSes.date}{detailNextSes.time ? ` · ${detailNextSes.time}` : ''}
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-              {expandedNote && (
-                <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/60 space-y-3">
-
-                  {/* Agregar nota */}
+                  {/* Barra de progreso */}
                   <div>
-                    <textarea
-                      value={noteText}
-                      onChange={e => setNoteText(e.target.value)}
-                      placeholder="Escribe una nota clínica..."
-                      rows={2}
-                      className="w-full bg-white border-none rounded-2xl p-3 font-medium text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-none shadow-sm"
-                    />
-                    <div className="flex justify-end mt-1.5">
-                      <button
-                        onClick={handleAddNote}
-                        disabled={savingNote || !noteText.trim()}
-                        className="flex items-center gap-1.5 bg-teal-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl hover:bg-teal-700 transition-all disabled:opacity-50"
-                      >
-                        {savingNote ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
-                        Guardar nota
-                      </button>
+                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden mb-1.5">
+                      <div
+                        className="bg-teal-500 h-2 rounded-full transition-all duration-700"
+                        style={{ width: `${getProgress(detailTreatment.sessions ?? [])}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Avance del tratamiento</span>
+                      <span className="text-[9px] font-black text-teal-600">{getProgress(detailTreatment.sessions ?? [])}%</span>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Lista de notas */}
-                  {detailNotes.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 font-medium text-center py-2">Sin notas clínicas</p>
-                  ) : (
-                    detailNotes.map(note => (
-                      <div key={note.id} className="bg-teal-50 border border-teal-100 rounded-2xl p-3.5">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[9px] font-black text-teal-700 uppercase flex items-center gap-1">
-                            <FileText size={9} /> {note.author}
-                          </span>
-                          <span className="text-[8px] text-teal-400 font-bold">{note.date}</span>
-                        </div>
-                        <p className="text-[11px] text-slate-600 leading-relaxed">{note.text}</p>
-                      </div>
-                    ))
-                  )}
+              {/* ── Alerta ── */}
+              {detailAlert && (
+                <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-[2rem] p-5">
+                  <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Alerta clínica</p>
+                    <p className="text-[11px] text-red-700 font-bold leading-relaxed">{detailAlert}</p>
+                  </div>
                 </div>
               )}
-            </div>
 
-          </div>
+              {/* ── Sesiones ── */}
+              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                <button
+                  onClick={() => setExpandedSess(v => !v)}
+                  className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Activity size={15} className="text-teal-600" />
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sesiones del tratamiento</span>
+                    {detailPps != null && (
+                      <span className="flex items-center gap-1 bg-teal-50 border border-teal-100 text-teal-600 text-[9px] font-black px-2.5 py-1 rounded-full">
+                        <DollarSign size={9} />{formatCOP(detailPps)} / sesión
+                      </span>
+                    )}
+                  </div>
+                  {expandedSess ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
+                </button>
+
+                {expandedSess && (
+                  <div className="border-t border-slate-100 px-5 py-4 space-y-2 bg-slate-50/60">
+                    {(detailTreatment.sessions ?? []).length === 0 ? (
+                      <p className="text-xs text-slate-400 font-medium text-center py-4">Sin sesiones registradas.</p>
+                    ) : (
+                      (detailTreatment.sessions ?? []).map((ses, idx) => {
+                        const effectiveStatus = getEffectiveStatus(ses);
+                        const sc    = S_CFG[effectiveStatus];
+                        const isUpd = updatingSessionId === ses.id;
+                        const canDone      = !['REALIZADA','CANCELADA','PAGADA'].includes(ses.status);
+                        const canCancel    = !['REALIZADA','CANCELADA','PAGADA'].includes(ses.status);
+                        const canReschedule = effectiveStatus === SessionStatus.VENCIDA || ses.status === SessionStatus.REPROGRAMADA;
+
+                        return (
+                          <div key={ses.id} className="flex items-start gap-3 bg-white rounded-2xl p-3.5 border border-slate-100">
+                            <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
+                              <div className={`w-6 h-6 ${sc.dot} rounded-full flex items-center justify-center`}>
+                                <span className="text-[8px] font-black text-white">{idx + 1}</span>
+                              </div>
+                              {idx < (detailTreatment.sessions ?? []).length - 1 && (
+                                <div className="w-0.5 h-4 bg-slate-200 rounded-full" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-[10px] font-black text-slate-700 uppercase">{ses.label}</p>
+                                <span className={`${sc.bg} text-[7px] font-black uppercase px-2 py-0.5 rounded-full text-slate-600`}>{sc.label}</span>
+                              </div>
+                              {(ses.date || ses.time) && (
+                                <p className="text-[9px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                                  <Calendar size={8} />{ses.date}{ses.time ? ` · ${ses.time}` : ''}
+                                </p>
+                              )}
+                              {detailPps != null && (
+                                <p className="text-[9px] font-black text-teal-500 mt-0.5 flex items-center gap-1">
+                                  <DollarSign size={8} />{formatCOP(detailPps)}
+                                </p>
+                              )}
+                              {ses.notes && <p className="text-[9px] text-slate-400 italic mt-1">{ses.notes}</p>}
+                              <div className="flex gap-1.5 mt-2 flex-wrap">
+                                {canDone && (
+                                  <button disabled={isUpd} onClick={() => handleSessionStatus(detailTreatment.id, ses.id, 'REALIZADA')}
+                                    className="flex items-center gap-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white border border-emerald-200 px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                                    <CheckCircle2 size={10} />{isUpd ? '...' : 'Realizada'}
+                                  </button>
+                                )}
+                                {canCancel && (
+                                  <button disabled={isUpd} onClick={() => handleSessionStatus(detailTreatment.id, ses.id, 'CANCELADA')}
+                                    className="flex items-center gap-1 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                                    <XCircle size={10} /> Cancelar
+                                  </button>
+                                )}
+                                {canReschedule && (
+                                  <button disabled={isUpd} onClick={() => handleSessionStatus(detailTreatment.id, ses.id, 'REPROGRAMADA')}
+                                    className="flex items-center gap-1 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white border border-amber-200 px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                                    <RotateCcw size={10} /> Reagendar
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Notas clínicas ── */}
+              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                <button
+                  onClick={() => setExpandedNote(v => !v)}
+                  className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText size={15} className="text-teal-600" />
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Notas clínicas</span>
+                    {detailNotes.length > 0 && (
+                      <span className="bg-slate-100 text-slate-500 text-[8px] font-black px-1.5 py-0.5 rounded-full">
+                        {detailNotes.length}
+                      </span>
+                    )}
+                  </div>
+                  {expandedNote ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
+                </button>
+
+                {expandedNote && (
+                  <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/60 space-y-3">
+                    <div>
+                      <textarea
+                        value={noteText}
+                        onChange={e => setNoteText(e.target.value)}
+                        placeholder="Escribe una nota clínica..."
+                        rows={2}
+                        className="w-full bg-white border-none rounded-2xl p-3 font-medium text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-none shadow-sm"
+                      />
+                      <div className="flex justify-end mt-1.5">
+                        <button
+                          onClick={handleAddNote}
+                          disabled={savingNote || !noteText.trim()}
+                          className="flex items-center gap-1.5 bg-teal-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl hover:bg-teal-700 transition-all disabled:opacity-50"
+                        >
+                          {savingNote ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                          Guardar nota
+                        </button>
+                      </div>
+                    </div>
+
+                    {detailNotes.length === 0 ? (
+                      <p className="text-[11px] text-slate-400 font-medium text-center py-2">Sin notas clínicas</p>
+                    ) : (
+                      detailNotes.map(note => (
+                        <div key={note.id} className="bg-teal-50 border border-teal-100 rounded-2xl p-3.5">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[9px] font-black text-teal-700 uppercase flex items-center gap-1">
+                              <FileText size={9} /> {note.author}
+                            </span>
+                            <span className="text-[8px] text-teal-400 font-bold">{note.date}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">{note.text}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           );
         })()}
       </div>
+
+      {/* ══ MODAL CLIENTE ════════════════════════════════════════════════════ */}
+      {customerModal && (
+        <CustomerDetailModal
+          customer={customerModal}
+          onClose={() => setCustomerModal(null)}
+          onUpdateCustomer={updated => {
+            onUpdateCustomer?.(updated);
+            // Si el modal abierto corresponde al detalle actual, actualiza también
+            setCustomerModal(updated);
+          }}
+        />
+      )}
     </div>
   );
 };
