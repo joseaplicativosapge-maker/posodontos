@@ -39,6 +39,22 @@ const S_CFG: Record<SessionStatus, { label: string; dot: string; bg: string }> =
   [SessionStatus.PAGADA]:       { label: 'Pagada',       dot: 'bg-violet-500',  bg: 'bg-violet-100'  },
 };
 
+// ─── Normaliza el status que llega del backend (string o enum) ───────────────
+// El endpoint /api/follow/:id devuelve { rawStatus: "EN_PROGRESO", status: "activo", ... }
+// pero el contexto tiene el PatientTreatment con status como TreatmentStatus enum.
+// Esta función garantiza que siempre obtenemos una key válida para T_CFG.
+
+const normalizeTreatmentStatus = (t: any): TreatmentStatus => {
+  // Si viene del endpoint de follow, usa rawStatus
+  const raw: string = t?.rawStatus ?? t?.status ?? '';
+  switch (raw) {
+    case 'EN_PROGRESO': return TreatmentStatus.EN_PROGRESO;
+    case 'COMPLETADO':  return TreatmentStatus.COMPLETADO;
+    case 'CANCELADO':   return TreatmentStatus.CANCELADO;
+    default:            return TreatmentStatus.PENDIENTE;
+  }
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatCOP = (v: number) =>
@@ -439,11 +455,14 @@ export const FollowView: React.FC<FollowViewProps> = ({
         )}
 
         {/* Detalle */}
-        {selectedId && !loadingDetail && detailTreatment && (
+        {selectedId && !loadingDetail && detailTreatment && (() => {
+          const tStatus = normalizeTreatmentStatus(detailTreatment);
+          const tCfg    = T_CFG[tStatus];
+          return (
           <div className="p-6 md:p-8 space-y-5 max-w-3xl">
 
             {/* ── Tarjeta del paciente ─────────────────────────────────── */}
-            <div className={`bg-white rounded-[2rem] border shadow-sm overflow-hidden ${T_CFG[detailTreatment.status].border}`}>
+            <div className={`bg-white rounded-[2rem] border shadow-sm overflow-hidden ${tCfg.border}`}>
               <div className="p-6">
 
                 {/* Nombre + estado */}
@@ -451,8 +470,8 @@ export const FollowView: React.FC<FollowViewProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <h3 className="text-xl font-black text-slate-800 uppercase leading-tight">{detailTreatment.name}</h3>
-                      <span className={`${T_CFG[detailTreatment.status].bg} ${T_CFG[detailTreatment.status].text} text-[8px] font-black uppercase px-2 py-0.5 rounded-full`}>
-                        {T_CFG[detailTreatment.status].label}
+                      <span className={`${tCfg.bg} ${tCfg.text} text-[8px] font-black uppercase px-2 py-0.5 rounded-full`}>
+                        {tCfg.label}
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
@@ -721,7 +740,8 @@ export const FollowView: React.FC<FollowViewProps> = ({
             </div>
 
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

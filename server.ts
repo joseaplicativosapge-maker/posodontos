@@ -29,7 +29,8 @@ import categoryRoutes from './routes/category.routes.js';
 import userRoutes from './routes/user.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import reservationRoutes from './routes/reservation.routes.js';
-import treatmentRoutes from './routes/treatment.routes';
+import treatmentRoutes from './routes/treatment.routes.js';
+import followRoutes from './routes/follow.routes.js';
 
 import compression from 'compression';
 
@@ -131,6 +132,8 @@ app.use('/api/kds', kdsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/treatments', treatmentRoutes);
+app.use('/api/follow', followRoutes);
+
 
 // Ajustes
 app.use('/api/branches', branchRoutes);
