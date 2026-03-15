@@ -442,7 +442,7 @@ model Customer {
   treatments           PatientTreatment[]
   companyId            String
   company              Company   @relation(fields: [companyId], references: [id])
-
+  clinicalHistory      String?   @db.LongText
   @@map("Customer")
 }
 
