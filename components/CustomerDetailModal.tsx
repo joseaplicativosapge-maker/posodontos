@@ -535,9 +535,8 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({custome
                 )}
               </SectionAccordion>
 
-              <SectionAccordion id="diagnostico" title="Diagnóstico y Plan de Tratamiento" icon={<Briefcase size={14}/>} open={openSection==='diagnostico'} onToggle={()=>setOpenSection(p=>p==='diagnostico'?null:'diagnostico')}>
+              <SectionAccordion id="diagnostico" title="Diagnóstico" icon={<Briefcase size={14}/>} open={openSection==='diagnostico'} onToggle={()=>setOpenSection(p=>p==='diagnostico'?null:'diagnostico')}>
                 <div><label className={cLb}>Diagnóstico</label><textarea rows={3} className={cTa} value={diagnosticoDetalle} onChange={e=>setDiagnosticoDetalle(e.target.value)} placeholder="Diagnóstico presuntivo y definitivo..."/></div>
-                <div><label className={cLb}>Plan de Tratamiento</label><textarea rows={4} className={cTa} value={planTratamiento} onChange={e=>setPlanTratamiento(e.target.value)} placeholder="Procedimientos a realizar en orden de prioridad..."/></div>
                 <div><label className={cLb}>Pronóstico</label><select className={cIn} value={pronostico} onChange={e=>setPronostico(e.target.value)}><option value="">Seleccionar pronóstico</option><option value="Bueno">Bueno</option><option value="Regular">Regular</option><option value="Reservado">Reservado</option><option value="Malo">Malo</option></select></div>
                 <div><label className={cLb}>Observaciones Generales</label><textarea rows={2} className={cTa} value={observacionesGral} onChange={e=>setObservacionesGral(e.target.value)} placeholder="Notas adicionales relevantes..."/></div>
               </SectionAccordion>
