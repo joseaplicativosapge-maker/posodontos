@@ -444,12 +444,20 @@ router.patch('/:treatmentId/sessions/:sessionId', async (req: Request, res: Resp
       trackingUpdatedBy,
     } = req.body;
 
-    // Verificar que la sesion pertenece al tratamiento indicado
-    const existing = await prisma.treatmentSession.findFirst({
-      where: { id: sessionId, treatmentId },
+    // Buscar la sesion por su PK y luego verificar que pertenece al tratamiento.
+    // Se hace en dos pasos porque en MySQL/Prisma el findFirst con { id, treatmentId }
+    // puede fallar silenciosamente si el campo id ya es PK unica.
+    console.log(sessionId);
+    const existing = await prisma.treatmentSession.findUnique({
+      where: { id: sessionId },
+      select: { id: true, treatmentId: true },
     });
+
     if (!existing) {
-      return res.status(404).json({ error: 'Sesion no encontrada en este tratamiento' });
+      return res.status(404).json({ error: 'Sesion no encontrada' });
+    }
+    if (existing.treatmentId !== treatmentId) {
+      return res.status(403).json({ error: 'La sesion no pertenece a este tratamiento' });
     }
 
     // Construir payload con solo los campos presentes en el body
@@ -462,7 +470,7 @@ router.patch('/:treatmentId/sessions/:sessionId', async (req: Request, res: Resp
       return res.status(400).json({ error: 'No se enviaron campos de tracking para actualizar' });
     }
 
-    // Metadatos de auditoria: quien registro y cuando
+    // Metadatos de auditoria
     data.trackingUpdatedAt = trackingUpdatedAt ? new Date(trackingUpdatedAt) : new Date();
     data.trackingUpdatedBy = trackingUpdatedBy ?? 'Sistema';
 
@@ -471,7 +479,12 @@ router.patch('/:treatmentId/sessions/:sessionId', async (req: Request, res: Resp
       data,
     });
 
-    // Devuelve la sesion serializada con todos sus campos trackingXxx
+    // Log para depuracion
+    console.log('[follow] tracking guardado — session:', sessionId, 'treatment:', treatmentId,
+      '| odontograma dientes:', Object.keys(updated.trackingOdontogram ?? {}).length,
+      '| fotos:', Array.isArray(updated.trackingPhotos) ? updated.trackingPhotos.length : 0,
+      '| notas:', updated.trackingNotes ? 'si' : 'no');
+
     return res.json(serializeSession(updated));
   } catch (error) {
     console.error('[follow] PATCH sessions/tracking:', error);

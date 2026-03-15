@@ -426,12 +426,16 @@ interface SessionTrackingModalProps {
   treatmentId:   string;
   tracking:      SessionTracking;
   authorName:    string;
+  readOnly:      boolean;
   onSave:        (sessionId: string, data: SessionTracking) => Promise<void>;
   onClose:       () => void;
 }
 
+// Estados que permiten editar el tracking clinico
+const EDITABLE_STATUSES: string[] = ['PROGRAMADA', 'REPROGRAMADA'];
+
 const SessionTrackingModal: React.FC<SessionTrackingModalProps> = ({
-  session, treatmentId, tracking, authorName, onSave, onClose,
+  session, treatmentId, tracking, authorName, readOnly, onSave, onClose,
 }) => {
   const [odontograma, setOdontograma] = useState<Record<number, Record<string, string>>>(
     JSON.parse(JSON.stringify(tracking.odontograma))
@@ -513,34 +517,133 @@ const SessionTrackingModal: React.FC<SessionTrackingModalProps> = ({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5">
+          {/* Banner de solo lectura */}
+          {readOnly && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-1">
+              <AlertTriangle size={13} className="text-amber-500 flex-shrink-0"/>
+              <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest">
+                Solo lectura — sesión en estado <span className="normal-case font-bold">{S_CFG[getEffectiveStatus(session)]?.label ?? session.status}</span>
+              </p>
+            </div>
+          )}
+
           {tab === 'odonto' && (
             <div className="space-y-3">
               <p className="text-[9px] text-slate-400 font-medium">
-                Registra el estado dental observado en esta sesión. Este odontograma es exclusivo para la sesión <strong className="text-slate-600">{session.label}</strong>.
+                {readOnly
+                  ? 'Odontograma registrado en esta sesión. Solo lectura.'
+                  : <>Registra el estado dental observado en esta sesión. Este odontograma es exclusivo para la sesión <strong className="text-slate-600">{session.label}</strong>.</>
+                }
               </p>
-              <TrackingOdontogram odontograma={odontograma} setOdontograma={setOdontograma}/>
+              {readOnly ? (
+                // Vista de solo lectura: odontograma no interactivo
+                Object.keys(odontograma).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                    <ClipboardList size={32} className="text-slate-300 mb-2"/>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Sin hallazgos registrados</p>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-slate-100 overflow-hidden">
+                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Hallazgos registrados</span>
+                      <span className="text-[9px] font-black bg-white text-slate-400 px-2 py-0.5 rounded-lg border border-slate-100">{Object.keys(odontograma).length} diente{Object.keys(odontograma).length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="p-3 space-y-1.5 bg-white">
+                      {Object.entries(odontograma).sort(([a],[b]) => Number(a)-Number(b)).map(([tooth, faces]) => {
+                        const global = faces['GLOBAL']; const faceConds = Object.entries(faces).filter(([f,v]) => f !== 'GLOBAL' && v);
+                        return (
+                          <div key={tooth} className="flex items-center gap-2 p-2 rounded-xl border border-slate-100">
+                            <span className="text-[10px] font-black text-slate-600 w-6 text-center bg-slate-100 rounded-lg py-0.5">{tooth}</span>
+                            {global && <span className="text-[9px] font-black px-2 py-0.5 rounded-lg border" style={{backgroundColor:OD_GLOBAL[global]?.color,borderColor:OD_GLOBAL[global]?.stroke+'88',color:OD_GLOBAL[global]?.label}}>{global}</span>}
+                            {faceConds.map(([face, cond]) => (<span key={face} className="text-[8px] font-black px-1.5 py-0.5 rounded-md border" style={{backgroundColor:OD_CONDITIONS[cond as string]?.color,borderColor:OD_CONDITIONS[cond as string]?.stroke+'66',color:OD_CONDITIONS[cond as string]?.label}}>{face}:{cond}</span>))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
+              ) : (
+                <TrackingOdontogram odontograma={odontograma} setOdontograma={setOdontograma}/>
+              )}
             </div>
           )}
           {tab === 'photos' && (
             <div className="space-y-3">
               <p className="text-[9px] text-slate-400 font-medium">
-                Adjunta fotografías clínicas, radiografías o cualquier imagen relevante para esta sesión.
+                {readOnly ? 'Fotografías registradas en esta sesión. Solo lectura.' : 'Adjunta fotografías clínicas, radiografías o cualquier imagen relevante para esta sesión.'}
               </p>
-              <PhotoGallery photos={photos} setPhotos={setPhotos} authorName={authorName}/>
+              {readOnly ? (
+                // Vista de solo lectura: fotos sin botones de eliminar/subir
+                photos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                    <Camera size={32} className="text-slate-300 mb-2"/>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Sin imágenes registradas</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {photos.map(photo => {
+                      const [prvOpen, setPrvOpen] = React.useState(false);
+                      return (
+                        <div key={photo.id} className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm">
+                          <div className="relative group cursor-pointer" onClick={() => setPrvOpen(true)}>
+                            <img src={photo.base64} alt={photo.label} className="w-full h-28 object-cover"/>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <ZoomIn size={18} className="text-white drop-shadow"/>
+                            </div>
+                          </div>
+                          <div className="p-2">
+                            <p className="text-[9px] font-black text-slate-700 truncate">{photo.label}</p>
+                            <p className="text-[8px] text-slate-400 font-medium mt-0.5">{new Date(photo.date).toLocaleDateString('es-CO',{day:'2-digit',month:'short'})} · {photo.author}</p>
+                          </div>
+                          {prvOpen && (
+                            <div className="fixed inset-0 bg-black/90 z-[960] flex items-center justify-center p-4" onClick={() => setPrvOpen(false)}>
+                              <div className="max-w-3xl w-full space-y-3" onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-white font-black text-sm">{photo.label}</p>
+                                    <p className="text-slate-400 text-xs">{new Date(photo.date).toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'})} · {photo.author}</p>
+                                  </div>
+                                  <button onClick={() => setPrvOpen(false)} className="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-xl"><XIcon size={18}/></button>
+                                </div>
+                                <img src={photo.base64} alt={photo.label} className="w-full max-h-[75vh] object-contain rounded-2xl"/>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                <PhotoGallery photos={photos} setPhotos={setPhotos} authorName={authorName}/>
+              )}
             </div>
           )}
           {tab === 'notes' && (
             <div className="space-y-3">
               <p className="text-[9px] text-slate-400 font-medium">
-                Escribe observaciones clínicas, procedimientos realizados, materiales usados, o cualquier nota relevante de esta sesión.
+                {readOnly ? 'Notas registradas en esta sesión. Solo lectura.' : 'Escribe observaciones clínicas, procedimientos realizados, materiales usados, o cualquier nota relevante de esta sesión.'}
               </p>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={12}
-                placeholder={`Notas de la sesión: ${session.label}\n\n- Procedimiento realizado:\n- Materiales utilizados:\n- Observaciones:\n- Indicaciones al paciente:`}
-                className="w-full bg-slate-50 border-none rounded-2xl p-4 font-medium text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-none leading-relaxed"
-              />
+              {readOnly ? (
+                notes.trim() ? (
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <pre className="text-[11px] text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">{notes}</pre>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                    <FileText size={32} className="text-slate-300 mb-2"/>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Sin notas registradas</p>
+                  </div>
+                )
+              ) : (
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  rows={12}
+                  placeholder={`Notas de la sesión: ${session.label}\n\n- Procedimiento realizado:\n- Materiales utilizados:\n- Observaciones:\n- Indicaciones al paciente:`}
+                  className="w-full bg-slate-50 border-none rounded-2xl p-4 font-medium text-sm outline-none focus:ring-2 focus:ring-teal-500 resize-none leading-relaxed"
+                />
+              )}
               {tracking.updatedAt && (
                 <p className="text-[8px] text-slate-400 font-medium flex items-center gap-1">
                   <Clock size={9}/> Último guardado: {new Date(tracking.updatedAt).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} por {tracking.updatedBy}
@@ -553,13 +656,15 @@ const SessionTrackingModal: React.FC<SessionTrackingModalProps> = ({
         {/* Footer */}
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0 flex items-center justify-between gap-3">
           <button onClick={onClose} className="px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-500 font-black text-[9px] uppercase tracking-widest hover:bg-slate-50 transition-all">
-            Cancelar
+            {readOnly ? 'Cerrar' : 'Cancelar'}
           </button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-black text-[9px] uppercase tracking-widest px-6 py-3 rounded-2xl transition-all disabled:opacity-50 shadow-lg shadow-teal-100">
-            {saving ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
-            {saving ? 'Guardando...' : 'Guardar registro'}
-          </button>
+          {!readOnly && (
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-black text-[9px] uppercase tracking-widest px-6 py-3 rounded-2xl transition-all disabled:opacity-50 shadow-lg shadow-teal-100">
+              {saving ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
+              {saving ? 'Guardando...' : 'Guardar registro'}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -1160,16 +1265,23 @@ export const FollowView: React.FC<FollowViewProps> = ({
       )}
 
       {/* ══ MODAL TRACKING DE SESIÓN ════════════════════════════════════════ */}
-      {trackingModal && detailTreatment && (
-        <SessionTrackingModal
-          session={trackingModal}
-          treatmentId={detailTreatment.id}
-          tracking={sessionTrackings[trackingModal.id] ?? EMPTY_TRACKING()}
-          authorName={currentUserName}
-          onSave={handleSaveSessionTracking}
-          onClose={() => setTrackingModal(null)}
-        />
-      )}
+      {trackingModal && detailTreatment && (() => {
+        // Editable solo si la sesion esta PROGRAMADA o REPROGRAMADA
+        // (tratamiento EN_PROGRESO o PENDIENTE, sesion no finalizada ni cancelada)
+        const sesEffective = getEffectiveStatus(trackingModal);
+        const isReadOnly   = !([SessionStatus.PROGRAMADA, SessionStatus.REPROGRAMADA] as string[]).includes(sesEffective);
+        return (
+          <SessionTrackingModal
+            session={trackingModal}
+            treatmentId={detailTreatment.id}
+            tracking={sessionTrackings[trackingModal.id] ?? EMPTY_TRACKING()}
+            authorName={currentUserName}
+            readOnly={isReadOnly}
+            onSave={handleSaveSessionTracking}
+            onClose={() => setTrackingModal(null)}
+          />
+        );
+      })()}
     </div>
   );
 };
