@@ -118,6 +118,8 @@ enum SessionStatus {
   REALIZADA
   CANCELADA
   REPROGRAMADA
+  VENCIDA
+  PAGADA
 }
 
 // ===============================
