@@ -12,8 +12,9 @@ import { useNotification } from './NotificationContext';
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 interface CustomerDetailModalProps {
-  customer:        Customer;
-  onClose:         () => void;
+  customer:         Customer;
+  loading?:         boolean;   // true mientras se carga el cliente completo desde el API
+  onClose:          () => void;
   onUpdateCustomer: (updated: Customer) => void;
 }
 
@@ -322,6 +323,7 @@ const ClinicalHistoryView: React.FC<{
 
 export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   customer,
+  loading = false,
   onClose,
   onUpdateCustomer,
 }) => {
@@ -343,7 +345,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   );
   const [fiscalResponsibility, setFiscalResponsibility] = useState(customer.fiscalResponsibility || '');
 
-  // Reset al cambiar de cliente
+  // Reset cuando cambia el cliente O cuando llegan datos completos del API
+  // (customer.id solo no basta porque al hacer fetch el id es el mismo
+  //  pero documentNumber/documentType/birthDate pueden llegar vacíos primero)
   useEffect(() => {
     setName(customer.name);
     setPhone(customer.phone);
@@ -355,7 +359,13 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
     setBirthDate(customer.birthDate ? new Date(customer.birthDate).toISOString().slice(0, 10) : '');
     setFiscalResponsibility(customer.fiscalResponsibility || '');
     setDirty(false);
-  }, [customer.id]);
+  }, [
+    customer.id,
+    customer.documentNumber,   // ← re-sincroniza cuando llega el fetch completo
+    customer.documentType,
+    customer.birthDate,
+    customer.fiscalResponsibility,
+  ]);
 
   const mark = () => setDirty(true);
 
@@ -438,8 +448,14 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
           {/* Avatar + datos */}
           <div className="flex items-center gap-5 mb-5">
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-2xl font-black text-white shadow-xl border-2 border-white/10 flex-shrink-0`}>
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-2xl font-black text-white shadow-xl border-2 border-white/10 flex-shrink-0 relative`}>
               {initial}
+              {/* Spinner sobre avatar mientras carga */}
+              {loading && (
+                <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center">
+                  <Loader2 size={20} className="animate-spin text-white" />
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-xl font-black text-white uppercase leading-tight tracking-tight truncate">
@@ -448,9 +464,13 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <Fingerprint size={11} className="text-slate-400" />
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {customer.documentType}: {customer.documentNumber || 'Sin documento'}
-                  </span>
+                  {loading ? (
+                    <span className="text-[10px] font-bold text-slate-500 italic">Cargando datos completos...</span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      {customer.documentType}: {customer.documentNumber || 'Sin documento'}
+                    </span>
+                  )}
                 </div>
                 <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${
                   customer.isActive
@@ -464,13 +484,21 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 )}
               </div>
 
-              {/* Mini HC progress bar */}
-              {customer.clinicalHistory && (
+              {/* Mini HC progress bar — solo cuando ya cargó */}
+              {!loading && customer.clinicalHistory && (
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex-1 bg-white/10 rounded-full h-1 overflow-hidden max-w-[120px]">
                     <div className={`h-1 rounded-full ${progressColor(hcPct)}`} style={{ width: `${hcPct}%` }} />
                   </div>
                   <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">HC {hcPct}%</span>
+                </div>
+              )}
+              {loading && (
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex-1 bg-white/10 rounded-full h-1 overflow-hidden max-w-[120px]">
+                    <div className="h-1 rounded-full bg-white/20 animate-pulse w-full" />
+                  </div>
+                  <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">HC ...</span>
                 </div>
               )}
             </div>
@@ -481,8 +509,9 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
             {TABS.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-3 text-[9px] font-black uppercase tracking-widest transition-all rounded-t-xl ${
+                onClick={() => !loading && setActiveTab(tab.id)}
+                disabled={loading}
+                className={`flex items-center gap-1.5 px-4 py-3 text-[9px] font-black uppercase tracking-widest transition-all rounded-t-xl disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeTab === tab.id
                     ? 'bg-white text-slate-800'
                     : 'text-slate-500 hover:text-white hover:bg-white/10'
@@ -504,7 +533,21 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
         </div>
 
         {/* ── BODY ────────────────────────────────────────────────────────── */}
-        <div className="overflow-y-auto flex-1 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 custom-scrollbar relative">
+
+          {/* Skeleton de carga — se superpone encima del contenido parcial */}
+          {loading && (
+            <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3">
+              <Loader2 size={28} className="animate-spin text-slate-400" />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cargando ficha completa...</p>
+              {/* Skeleton bars */}
+              <div className="w-64 space-y-2 mt-2">
+                {[80, 60, 72, 50, 66].map((w, i) => (
+                  <div key={i} className="h-2.5 bg-slate-200 rounded-full animate-pulse" style={{ width: `${w}%`, animationDelay: `${i * 80}ms` }} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* TAB: INFO */}
           {activeTab === 'info' && (
