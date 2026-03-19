@@ -23,7 +23,7 @@ export const PublicReservation: React.FC<PublicReservationProps> = ({ branch }) 
     e.preventDefault();
     setLoading(true);
     
-    // reserva de sillas: Objeto de envío para el API
+    // reserva de consultorio: Objeto de envío para el API
     const reservationData = {
       id: `res-${Date.now()}`,
       branchId: branch.id,

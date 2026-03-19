@@ -660,7 +660,7 @@ const App: React.FC = () => {
               <span className="text-[9px] font-black uppercase tracking-widest">Inicio</span>
             </button>
             <button onClick={() => setCurrentView('tables')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'tables' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}>
-              <Grid3X3 size={22} /><span className="text-[9px] font-black uppercase tracking-widest">Sillas</span>
+              <Grid3X3 size={22} /><span className="text-[9px] font-black uppercase tracking-widest">Consultorios</span>
             </button>
             <button onClick={() => setCurrentView('pos')} className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition-all ${currentView === 'pos' ? 'text-brand-600 scale-110' : 'text-slate-400'}`}>
               <Store size={26} /><span className="text-[9px] font-black uppercase tracking-widest">POS</span>

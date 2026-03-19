@@ -70,7 +70,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
   const handleTableClick = (table: Table) => {
     if (isMergeMode) {
         if (table.status !== TableStatus.AVAILABLE || table.parentId) {
-            notify("Solo puede unir sillas libres e independientes", "warning");
+            notify("Solo puede unir consultorio libres e independientes", "warning");
             return;
         }
         if (mergeSelection.includes(table.id)) {
@@ -94,7 +94,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
 
   const handleConfirmMerge = async () => {
       if (mergeSelection.length < 2) {
-          notify("Seleccione al menos 2 sillas para unir", "warning");
+          notify("Seleccione al menos 2 consultorios para unir", "warning");
           return;
       }
       
@@ -105,18 +105,18 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
       if (!parentTable) return;
 
       if (await confirm({
-          title: 'Confirmar Unión de Sillas',
-          message: `¿Desea unir estas ${mergeSelection.length} sillas? Se comportarán como una sola unidad para grupos grandes.`,
+          title: 'Confirmar Unión de Consultorio',
+          message: `¿Desea unir estas ${mergeSelection.length} consultorios? Se comportarán como una sola unidad para grupos grandes.`,
           type: 'info'
       })) {
           try {
               await dataService.mergeTables(parentId, childrenIds);
               setMergeSelection([]);
               setIsMergeMode(false);
-              notify("Sillas unidas correctamente", "success");
+              notify("Consultorio unidas correctamente", "success");
               refreshBranchData();
           } catch (e) {
-              notify("Error al sincronizar unión de sillas", "error");
+              notify("Error al sincronizar unión de consultorios", "error");
           }
       }
   };
@@ -125,21 +125,21 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
       if (!table.mergedWith || table.mergedWith.length === 0) return;
       
       if (table.status !== TableStatus.AVAILABLE) {
-          notify("No se pueden separar sillas con comandas activas", "error");
+          notify("No se pueden separar consultorios con comandas activas", "error");
           return;
       }
 
       if (await confirm({
-          title: 'Separar Sillas',
+          title: 'Separar Consultorios',
           message: `¿Desea separar la agrupación de ${table.name}? Cada silla volverá a ser independiente.`,
           type: 'warning'
       })) {
           try {
               await dataService.splitTables(table.id);
-              notify("Sillas separadas", "info");
+              notify("Consultorios separadas", "info");
               refreshBranchData();
           } catch (e) {
-              notify("Error al separar sillas", "error");
+              notify("Error al separar consultorios", "error");
           }
       }
   };
@@ -150,7 +150,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
             <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl text-center max-w-lg mx-auto border border-slate-200">
                 <div className="bg-red-50 w-28 h-28 rounded-full flex items-center justify-center mx-auto mb-10 text-red-600 ring-8 ring-red-50/50"><Lock size={56} strokeWidth={2.5} /></div>
                 <h2 className="text-4xl font-black text-slate-800 mb-4 tracking-tighter">Salón Bloqueado</h2>
-                <p className="max-w-xs mx-auto text-slate-500 font-bold text-lg leading-tight mb-12">Abra una caja para gestionar sillas y comandas.</p>
+                <p className="max-w-xs mx-auto text-slate-500 font-bold text-lg leading-tight mb-12">Abra una caja para gestionar consultorios y comandas.</p>
                 <button onClick={onOpenRegisterRequest} className="w-full bg-brand-600 hover:bg-brand-700 text-white font-black py-6 rounded-[2.5rem] flex justify-center items-center uppercase tracking-widest text-sm shadow-2xl transition-all active:scale-95 gap-3"><Unlock size={24} /> Desbloquear Terminal</button>
             </div>
         </div>
@@ -175,7 +175,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
                 {/*
                     {!isEmpty && 
                         <button onClick={() => setIsMergeMode(true)} className="bg-white border border-slate-200 text-slate-700 px-6 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
-                            <Link size={16}/> Unir Sillas
+                            <Link size={16}/> Unir Consultorios
                         </button>
                     }
                 */}
@@ -188,7 +188,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
       {isMergeMode && (
           <div className="mb-6 bg-brand-50 p-4 rounded-2xl border border-brand-100 flex items-center gap-4 animate-in slide-in-from-top-2">
               <div className="bg-brand-600 p-2 rounded-xl text-white"><Info size={20}/></div>
-              <p className="text-xs font-bold text-brand-900 uppercase tracking-wide">Modo de Unión Activo: Seleccione las sillas que desea agrupar para un solo servicio.</p>
+              <p className="text-xs font-bold text-brand-900 uppercase tracking-wide">Modo de Unión Activo: Seleccione las consultorios que desea agrupar para un solo servicio.</p>
           </div>
       )}
 
@@ -202,7 +202,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
               Sin Ubicaciones
             </h3>
             <p className="text-slate-500 font-medium text-sm mb-8 max-w-xs mx-auto">
-              No existen sillas o lava cabezas configuradas en este salón
+              No existen consultorio o lava cabezas configuradas en este salón
             </p>
             <button 
               onClick={() => handleOpenModal()} 
@@ -248,7 +248,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
                                   {isChild && <div className="w-2 h-2 rounded-full bg-slate-300"></div>}
                               </span>
                               <span className="text-[10px] font-black opacity-40 uppercase">
-                                  {displaySeats} {table.isBar ? 'Sillas' : 'Pers.'}
+                                  {displaySeats} {table.isBar ? 'Consultorios' : 'Pers.'}
                                   {hasChildren && <span className="ml-1 text-emerald-600">(TOTAL)</span>}
                               </span>
                           </div>
@@ -273,7 +273,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
 
                   <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                       {hasChildren && table.status === TableStatus.AVAILABLE && (
-                          <button onClick={(e) => { e.stopPropagation(); handleSplitTable(table); }} className="bg-red-50 text-red-600 p-2.5 rounded-2xl shadow-lg border border-red-100 hover:bg-red-100" title="Separar Sillas">
+                          <button onClick={(e) => { e.stopPropagation(); handleSplitTable(table); }} className="bg-red-50 text-red-600 p-2.5 rounded-2xl shadow-lg border border-red-100 hover:bg-red-100" title="Separar Consultorio">
                               <Unlink size={14}/>
                           </button>
                       )}
@@ -306,11 +306,11 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
                         <input required className="w-full bg-slate-50 border-none rounded-2xl p-4 font-black uppercase text-xs" value={newTableName} onChange={e => setNewTableName(e.target.value)} />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Nro Asientos / Sillas</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Nro Asientos / Consultorio</label>
                         <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl p-4 font-black" value={newTableSeats} onChange={e => setNewTableSeats(Number(e.target.value))} />
                     </div>
                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                        <span className="text-[10px] font-black text-slate-500 uppercase">Es una silla especial?</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase">Es un consultorio especial?</span>
                         <button type="button" onClick={() => setNewIsBar(!newIsBar)} className={`w-12 h-6 rounded-full relative transition-all ${newIsBar ? 'bg-brand-600' : 'bg-slate-300'}`}>
                             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${newIsBar ? 'left-7' : 'left-1'}`}></div>
                         </button>
@@ -325,7 +325,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ tables, currentBranchId,
           <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[1100] p-4">
               <div className="bg-white rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200">
                   <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                      <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{selectedBar.name} - Sillas</h3>
+                      <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800">{selectedBar.name} - Consultorios</h3>
                       <button onClick={() => setIsChairModalOpen(false)} className="text-slate-400 hover:text-slate-800 p-2 bg-white rounded-xl shadow-sm"><X size={24} /></button>
                   </div>
                   <div className="p-10 grid grid-cols-4 sm:grid-cols-5 gap-4 max-h-[60vh] overflow-y-auto">

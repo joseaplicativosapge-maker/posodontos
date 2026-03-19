@@ -1030,9 +1030,9 @@ export const POSView: React.FC<POSViewProps> = ({
                       {(selectedTable.mergedWith?.length || 0) > 0 ? <Link size={18}/> : <Grid3X3 size={18}/>}
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{(selectedTable.mergedWith?.length || 0) > 0 ? 'Grupo de Sillas' : 'Silla Seleccionada'}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{(selectedTable.mergedWith?.length || 0) > 0 ? 'Grupo de Consultorio' : 'Consultorio Seleccionado'}</p>
                       <p className="text-sm font-black uppercase tracking-tighter">
-                        {selectedTable.name} {selectedSeat && `- SILLA ${selectedSeat}`}
+                        {selectedTable.name} {selectedSeat && `- CONSULTORIO ${selectedSeat}`}
                         {(selectedTable.mergedWith?.length || 0) > 0 && <span className="ml-2 text-[10px] bg-white/20 px-2 py-0.5 rounded-full">CAP: {selectedTable.seats + (selectedTable.mergedWith?.length || 0) * 4} pers</span>}
                       </p>
                     </div>

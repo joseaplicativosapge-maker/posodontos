@@ -289,7 +289,7 @@ export const QrMenuView: React.FC<QrMenuViewProps> = ({ products, currentBranch 
                     <h4 className="font-black text-brand-900 uppercase text-sm tracking-widest">Guía Rápida de Implementación</h4>
                     <ul className="text-brand-700 text-sm leading-relaxed space-y-2 list-disc pl-6">
                         <li><strong>Descarga o imprime</strong> los códigos QR desde los botones correspondientes</li>
-                        <li><strong>Colócalos estratégicamente</strong> en sillas, entrada, ventanas o stands</li>
+                        <li><strong>Colócalos estratégicamente</strong> en consultorios, entrada, ventanas o stands</li>
                         <li><strong>Actualiza tu servicio</strong> desde el módulo de Productos y se verá en tiempo real</li>
                         <li><strong>Usa la vista previa</strong> para validar la experiencia en diferentes dispositivos</li>
                         <li><strong>Comparte los enlaces</strong> en redes sociales, WhatsApp y Google Business</li>

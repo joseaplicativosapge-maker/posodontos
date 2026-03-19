@@ -95,7 +95,7 @@ export const dataService = {
       { orders: [], totals: { iva: 0, impoconsumo: 0, sent: 0, pending: 0, totalVentas: 0 } }
     ),
 
-  // Sillas
+  // Consultorio
   getTables: (branchId: string) => safeCall(api.get(`/tables?branchId=${branchId}`), MOCKS.MOCK_TABLES),
   saveTable: (data: any) => safeWrite(
     !data.id ? api.post('/tables', data) : api.put(`/tables/${data.id}`, data)
